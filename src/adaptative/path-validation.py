@@ -236,5 +236,5 @@ class PipelineEstimatedSizeFiles:
             elif resources_parquet['ratio'] <= 2.0:
                 resources_parquet['decision']= 'lazy'
             else: 
-                resources_csv['decision']= 'streaming'
+                resources_parquet['decision']= 'streaming'
             return resources_parquet
