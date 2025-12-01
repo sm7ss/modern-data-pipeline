@@ -143,53 +143,98 @@ class CsvOverheadEstimator:
                 return sum(1 for _ in file) -1
 
 class FileSizeEstimator: 
-    def __init__(self, archivo: Path):
-        self.path = archivo
-        self.parquet_overhead = ParquetOverheadEstimator(archivo=self.path)
-        self.csv_overhead= CsvOverheadEstimator(archivo=self.path)
-    
-    def estimate_parquet_size(self,  
+    @staticmethod
+    def estimate_parquet_size( 
+        parquet_overhead: pp.ParquetFile,
         default_factor: float=1.7, 
-        sample_n_rows: int=1000) -> int: 
-        uncompressed_data_size= self.parquet_overhead.uncompressed_data_size()
-        overhead_estimated= self.parquet_overhead.parquet_algorithm_overhead(default_factor=default_factor, sample_n_rows=sample_n_rows)
+        sample_n_rows: int=1000, 
+        os_margin: float=0.2) -> int: 
+        #file overhead and unconmpressed
+        uncompressed_data_size= parquet_overhead.uncompressed_data_size()
+        overhead_estimated= parquet_overhead.parquet_algorithm_overhead(default_factor=default_factor, sample_n_rows=sample_n_rows)
         
+        #resources available and estimated
         estimated_memory= (overhead_estimated*uncompressed_data_size) / (1024**3)
+        memoria_disponible=psutil.virtual_memory().available/(1024**3)
+        total_memory=psutil.virtual_memory().total/(1024**3)
+        
+        #margin of safety
+        safety_memory= total_memory*os_margin
+        usable_ram= memoria_disponible-safety_memory
+        
+        ratio= estimated_memory/usable_ram
         
         return {
-            'memoria_base_gb':uncompressed_data_size/(1024**3), 
-            'overhead_estimado':overhead_estimated, 
-            'memoria_total_estimada_gb':estimated_memory, 
-            'memoria_disponible':psutil.virtual_memory().available/(1024**3)
+            'ratio': round(ratio, 3),
+            'memoria_base_gb': round(uncompressed_data_size/(1024**3), 3), 
+            'overhead_estimado':round(overhead_estimated, 3), 
+            'safety_memory':round(safety_memory, 3),
+            'memoria_total_estimada_gb':round(estimated_memory, 3), 
+            'memoria_disponible':round(memoria_disponible, 3), 
+            'total_memory':round(total_memory, 3)
         }
     
-    def estimate_csv_size(self, 
+    @staticmethod
+    def estimate_csv_size( 
+        csv_overhead_class,
         csv_overhead: float=1.8,
         default_factor: int=16, 
-        sample_n_rows: int=1000): 
-        num_rows= self.csv_overhead.total_rows_csv()
-        overhead_csv= csv_overhead
-        bytes_per_column= self.csv_overhead.csv_bytes_per_column(default_factor=default_factor, sample_n_rows=sample_n_rows)
+        sample_n_rows: int=1000, 
+        os_margin: float=0.2): 
+        #bytes and num rows
+        num_rows= csv_overhead_class.total_rows_csv()
+        bytes_per_column= csv_overhead_class.csv_bytes_per_column(default_factor=default_factor, sample_n_rows=sample_n_rows)
         
-        estimated_memory= (num_rows*overhead_csv*bytes_per_column) / (1024**3)
+        #resources and estimated resources
+        estimated_memory= (num_rows*csv_overhead*bytes_per_column) / (1024**3)
+        memoria_disponible= psutil.virtual_memory().available/(1024**3)
+        total_memory=psutil.virtual_memory().total/(1024**3)
+        
+        #margin of safety
+        safety_memory= total_memory*os_margin
+        usable_ram= memoria_disponible-safety_memory
+        
+        ratio= estimated_memory/usable_ram
         
         return {
-            'memoria_base_gb':num_rows/(1024**3), 
-            'overhead_estimado':overhead_csv, 
-            'memoria_total_estimada_gb':estimated_memory, 
-            'memoria_disponible':psutil.virtual_memory().available/(1024**3)
+            'ratio': round(ratio, 3),
+            'total_rows':num_rows, 
+            'bytes_por_columna':bytes_per_column,
+            'safety_memory':round(safety_memory, 3),
+            'memoria_total_estimada_gb':round(estimated_memory, 3), 
+            'memoria_disponible':round(memoria_disponible, 3), 
+            'total_memory':round(total_memory, 3)
         }
 
-# margin_os: float=0.2
+'''
+    Pasar los parametros a un yaml para tener menos parametros
+    En el pipeline no se pusieron los parametros de la clase FileSizeEstimator 
+'''
 class PipelineEstimatedSizeFiles: 
     def __init__(self, archivo: str):
         self.archivo= Path(archivo)
-        self.estimator=FileSizeEstimator(archivo=self.archivo)
+        self.estimator=FileSizeEstimator()
     
-    def estimated_size_with_safety_margin(self, os_margin: float=0.2) -> Dict[str, Any]: 
+    def estimated_size_file(self) -> Dict[str, Any]: 
         if self.archivo.suffix == '.csv': 
-            pass
-        elif self.archivo.suffix == '.parquet': 
-            pass
+            overhead_csv= CsvOverheadEstimator(archivo=self.archivo)
+            resources_csv= self.estimator.estimate_csv_size(csv_overhead_class=overhead_csv)
+            
+            if resources_csv['ratio'] <= 0.65: 
+                resources_csv['decision']= 'eager'
+            elif resources_csv['ratio'] <= 2.0:
+                resources_csv['decision']= 'lazy'
+            else: 
+                resources_csv['decision']= 'streaming'
+            return resources_csv
         else: 
-            raise ValueError(f'El archivo {self.archivo.name} debe ser un csv o parquet')
+            overhead_parquet= ParquetOverheadEstimator(archivo=self.archivo)
+            resources_parquet=self.estimator.estimate_parquet_size(parquet_overhead=overhead_parquet)
+            
+            if resources_parquet['ratio'] <= 0.65: 
+                resources_parquet['decision']= 'eager'
+            elif resources_parquet['ratio'] <= 2.0:
+                resources_parquet['decision']= 'lazy'
+            else: 
+                resources_csv['decision']= 'streaming'
+            return resources_parquet
