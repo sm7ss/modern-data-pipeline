@@ -1,0 +1,9 @@
+path: 
+  input_path: '/home/arbolitos7/Documents/ArbolitosMiCasita/CrescencioEnLaCiudad/archivos/Zvuk_Dataset/zvuk-interactions.parquet'
+
+etl: 
+  cleaning_steps:
+    data_type: {'user_id': 'utf8', 'datetime':'%Y-%m-%d'}
+    rename_columns: 'lower'
+  validation_data:
+    sample_size: 0.1
