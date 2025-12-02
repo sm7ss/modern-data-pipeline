@@ -4,6 +4,9 @@ import pyarrow.parquet as pp
 import pyarrow as pa
 from typing import Dict, Any
 import subprocess
+from pydantic import BaseModel
+
+from ..core.input_read_validation import ReadYamlFile
 
 import logging 
 from pathlib import Path
@@ -12,13 +15,16 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(mess
 logger = logging.getLogger(__name__)
 
 class ParquetOverheadEstimator: 
-    def __init__(self, archivo: Path):
+    def __init__(self, archivo: Path, model: BaseModel):
         self.path = archivo
+        self.parquet_model= model.default_parquet_factors
+        self.n_rows_sample= model.read_n_rows_sample
+        
         self.metadata = pp.ParquetFile(self.path).metadata
         self.schema= self.metadata.schema.to_arrow_schema()
     
-    def parquet_string_overhead_estimator(self, sample_n_rows: int=1000) -> float: 
-        sample_median=pl.read_parquet(self.path, n_rows=sample_n_rows)
+    def parquet_string_overhead_estimator(self) -> float: 
+        sample_median=pl.read_parquet(self.path, n_rows=self.n_rows_sample.n_rows_sample)
         
         schema_string= [col for col in sample_median.columns if sample_median[col].dtype == pl.String]
         
@@ -35,9 +41,7 @@ class ParquetOverheadEstimator:
         else: 
             return 2.3
     
-    def parquet_algorithm_overhead(self, 
-        default_factor: float=1.7, 
-        sample_n_rows: int=1000) -> Dict[str, Any]: 
+    def parquet_algorithm_overhead(self) -> Dict[str, Any]: 
         factores= []
         
         for col in self.schema: 
@@ -50,7 +54,7 @@ class ParquetOverheadEstimator:
                 factores.append(1.4)
             #String 
             if pa.types.is_string(tipo) or pa.types.is_large_string(tipo): 
-                factores.append(self.string_overhead_estimator(sample_n_rows=sample_n_rows))
+                factores.append(self.string_overhead_estimator())
             #Boleano 
             if pa.types.is_boolean(tipo): 
                 factores.append(2.0)
@@ -62,7 +66,7 @@ class ParquetOverheadEstimator:
                 factores.append(2.2)
             #Otro 
             else: 
-                factores.append(default_factor)
+                factores.append(self.parquet_model.parquet_overhead_factor)
         
         return sum(factores) / len(factores)
     
@@ -76,8 +80,12 @@ class ParquetOverheadEstimator:
         return uncompressed_data_size
 
 class CsvOverheadEstimator: 
-    def __init__(self, archivo: Path):
+    def __init__(self, archivo: Path, model: BaseModel):
         self.archivo = archivo
+        
+        self.csv_overhead= model.default_csv_factors.csv_overhead
+        self.csv_bytes= model.default_csv_factors.csv_bytes_factor
+        self.n_rows_sample= model.read_n_rows_sample.n_rows_sample
     
     def csv_string_bytes_estimator(self, schema: pl.schema, frame: pl.DataFrame) -> float: 
         string_columns= [col for col in schema if frame[col].dtype == pl.String]
@@ -91,10 +99,8 @@ class CsvOverheadEstimator:
         
         return max(sum(longitudes), 32)
     
-    def csv_bytes_per_column(self,
-        default_factor: int=16, 
-        sample_n_rows: int=1000) -> float: 
-        frame= pl.read_csv(self.archivo, n_rows=sample_n_rows)
+    def csv_bytes_per_column(self) -> float: 
+        frame= pl.read_csv(self.archivo, n_rows=self.n_rows_sample)
         schema= frame.schema
         
         bytes_per_column= 0
@@ -127,7 +133,7 @@ class CsvOverheadEstimator:
                 bytes_per_column+=self.csv_string_bytes_estimator(schema=schema, frame=frame)
             #Other
             else: 
-                bytes_per_column+=default_factor
+                bytes_per_column+=self.csv_bytes
         
         return bytes_per_column
     
@@ -143,15 +149,14 @@ class CsvOverheadEstimator:
                 return sum(1 for _ in file) -1
 
 class FileSizeEstimator: 
-    @staticmethod
-    def estimate_parquet_size( 
-        parquet_overhead: pp.ParquetFile,
-        default_factor: float=1.7, 
-        sample_n_rows: int=1000, 
-        os_margin: float=0.2) -> int: 
+    def __init__(self, model: BaseModel):
+        self.csv_overhead= model.default_csv_factors.csv_overhead
+        self.os_margin= model.general_margin.os_margin
+    
+    def estimate_parquet_size(self, parquet_overhead: pp.ParquetFile) -> Dict[str, Any]: 
         #file overhead and unconmpressed
         uncompressed_data_size= parquet_overhead.uncompressed_data_size()
-        overhead_estimated= parquet_overhead.parquet_algorithm_overhead(default_factor=default_factor, sample_n_rows=sample_n_rows)
+        overhead_estimated= parquet_overhead.parquet_algorithm_overhead()
         
         #resources available and estimated
         estimated_memory= (overhead_estimated*uncompressed_data_size) / (1024**3)
@@ -159,7 +164,7 @@ class FileSizeEstimator:
         total_memory=psutil.virtual_memory().total/(1024**3)
         
         #margin of safety
-        safety_memory= total_memory*os_margin
+        safety_memory= total_memory*self.os_margin
         usable_ram= memoria_disponible-safety_memory
         
         ratio= estimated_memory/usable_ram
@@ -174,24 +179,18 @@ class FileSizeEstimator:
             'total_memory':round(total_memory, 3)
         }
     
-    @staticmethod
-    def estimate_csv_size( 
-        csv_overhead_class,
-        csv_overhead: float=1.8,
-        default_factor: int=16, 
-        sample_n_rows: int=1000, 
-        os_margin: float=0.2): 
+    def estimate_csv_size(self, csv_overhead_class) -> Dict[str, Any]: 
         #bytes and num rows
         num_rows= csv_overhead_class.total_rows_csv()
-        bytes_per_column= csv_overhead_class.csv_bytes_per_column(default_factor=default_factor, sample_n_rows=sample_n_rows)
+        bytes_per_column= csv_overhead_class.csv_bytes_per_column()
         
         #resources and estimated resources
-        estimated_memory= (num_rows*csv_overhead*bytes_per_column) / (1024**3)
+        estimated_memory= (num_rows*self.csv_overhead*bytes_per_column) / (1024**3)
         memoria_disponible= psutil.virtual_memory().available/(1024**3)
         total_memory=psutil.virtual_memory().total/(1024**3)
         
         #margin of safety
-        safety_memory= total_memory*os_margin
+        safety_memory= total_memory*self.os_margin
         usable_ram= memoria_disponible-safety_memory
         
         ratio= estimated_memory/usable_ram
@@ -207,17 +206,18 @@ class FileSizeEstimator:
         }
 
 '''
-    Pasar los parametros a un yaml para tener menos parametros
-    En el pipeline no se pusieron los parametros de la clase FileSizeEstimator 
+    Cambiar la estrcutura, esto funciona pero no me gusta, está demasiado revuelto 
+    Agregar clases de margenes de sample rows y para overhead
 '''
 class PipelineEstimatedSizeFiles: 
-    def __init__(self, archivo: str):
+    def __init__(self, archivo: str, archivo_yaml: str):
         self.archivo= Path(archivo)
-        self.estimator=FileSizeEstimator()
+        self.model= ReadYamlFile(archivo=archivo_yaml).read_yaml()
+        self.estimator=FileSizeEstimator(model=self.model)
     
     def estimated_size_file(self) -> Dict[str, Any]: 
         if self.archivo.suffix == '.csv': 
-            overhead_csv= CsvOverheadEstimator(archivo=self.archivo)
+            overhead_csv= CsvOverheadEstimator(archivo=self.archivo, model=self.model)
             resources_csv= self.estimator.estimate_csv_size(csv_overhead_class=overhead_csv)
             
             if resources_csv['ratio'] <= 0.65: 
@@ -228,7 +228,7 @@ class PipelineEstimatedSizeFiles:
                 resources_csv['decision']= 'streaming'
             return resources_csv
         else: 
-            overhead_parquet= ParquetOverheadEstimator(archivo=self.archivo)
+            overhead_parquet= ParquetOverheadEstimator(archivo=self.archivo, model=self.model)
             resources_parquet=self.estimator.estimate_parquet_size(parquet_overhead=overhead_parquet)
             
             if resources_parquet['ratio'] <= 0.65: 
