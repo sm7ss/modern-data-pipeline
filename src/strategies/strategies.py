@@ -19,4 +19,4 @@ class dtype_estrategia(str, Enum):
     INT32 = 'int32'
     INT8 = 'int8'
     FLOAT64 = 'float64'
-    BOOL = 'bool'
+    FLOAT32= 'Float32'
