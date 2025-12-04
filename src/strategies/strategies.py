@@ -1,8 +1,8 @@
 from enum import Enum
 
 class date_estrategia(str, Enum):
-    AÑO_4_DIGITOS = '%Y'
-    MES_CON_NUMEROS = '%m'
+    AÑO = '%Y'
+    MES_EN_NUMERO = '%m'
     DIA_DEL_MES = '%d'
     EUROPEO = '%d/%m/%Y %H:%M'
     AMERICANO = '%m-%d-%Y %I:%M %p'
