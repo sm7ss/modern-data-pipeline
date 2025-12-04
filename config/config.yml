@@ -5,6 +5,6 @@ etl:
   cleaning_steps:
     data_type: {'user_id': 'utf8'}
     date_format: '%Y-%m-%d'
-    rename_columns: {'user_id': 'upper', 'datetime':'lower'}
+    rename_columns: 'lower'
   validation_data:
     sample_size: 0.1
