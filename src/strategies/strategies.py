@@ -1,4 +1,5 @@
 from enum import Enum
+import polars as pl
 
 class date_estrategia(str, Enum):
     AÑO = '%Y'
@@ -13,10 +14,10 @@ class rename_columns_estrategia(str, Enum):
     UPPER = 'upper'
     CAPITALIZE = 'capitalize'
 
-class dtype_estrategia(str, Enum): 
-    UTF8 = 'utf8'
-    INT64 = 'int64'
-    INT32 = 'int32'
-    INT8 = 'int8'
-    FLOAT64 = 'float64'
-    FLOAT32= 'Float32'
+class dtype_estrategia(tuple, Enum): 
+    UTF8 = ('utf8', pl.Utf8)
+    INT64 = ('int64', pl.Int64)
+    INT32 = ('int32', pl.Int32)
+    INT8 = ('int8', pl.Int8)
+    FLOAT64 = ('float64', pl.Float64)
+    FLOAT32= ('float32', pl.Float32)
