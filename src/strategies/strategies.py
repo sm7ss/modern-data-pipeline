@@ -1,14 +1,6 @@
 from enum import Enum
 import polars as pl
 
-class date_estrategia(str, Enum):
-    AÑO = '%Y'
-    MES_EN_NUMERO = '%m'
-    DIA_DEL_MES = '%d'
-    EUROPEO = '%d/%m/%Y %H:%M'
-    AMERICANO = '%m-%d-%Y %I:%M %p'
-    FECHA = '%Y-%m-%d'
-
 class rename_columns_estrategia(str, Enum): 
     LOWER = 'lower'
     UPPER = 'upper'
