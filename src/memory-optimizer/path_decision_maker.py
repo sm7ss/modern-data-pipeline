@@ -32,6 +32,7 @@ class FileSizeEstimator:
         ratio= estimated_memory/usable_ram
         
         return {
+            'os_margin': self.os_margin, 
             'ratio': round(ratio, 3),
             'overhead_estimado':round(overhead_estimated, 3), 
             'safety_memory':round(safety_memory, 3),
@@ -60,6 +61,7 @@ class FileSizeEstimator:
         ratio= estimated_memory/usable_ram
         
         return {
+            'os_margin': self.os_margin, 
             'ratio': round(ratio, 3),
             'total_rows':num_rows, 
             'bytes_por_columna':bytes_per_column,
