@@ -51,7 +51,12 @@ class ETL:
     def __init__(self, model: BaseModel, file_overhead: Dict[str, Any]):
         self.model= model
         self.archivo = self.model.path.input_path
+        
         self.decision= file_overhead['decision']
+        self.file_size= file_overhead['tamaño_archivo']
+        self.os_margin= file_overhead['os_margin']
+        
+        self.chunk_size= ChunkFileProcessor(path=self.archivo, file_size=self.file_size)
     
     def _load_eager_frame(self) -> pl.DataFrame: 
         if self.archivo.suffix == '.csv': 
@@ -66,7 +71,44 @@ class ETL:
             return pl.scan_parquet(self.archivo)
     
     def _run_streaming_handler(self) -> None:
-        pass #Aqui la clase para manejar streming
+        chunk_size= self.chunk_size.calculate_optimal_chunk_size(safe_margin=self.os_margin)
+        
+        if self.archivo.suffix == '.csv': 
+            primer_chunk= pl.read_csv(
+                self.archivo, 
+                n_rows=chunk_size
+            )
+        else: 
+            #Cambiar estrategia a n_groups
+            logger.warning('Streaming por Parquet no disponible aun')
+        
+        #Meter el etl de primera transformacion 
+        #Escribirlo em archivo para el sample 
+        
+        schema= primer_chunk.schema
+        
+        skip_rows= chunk_size
+        while True: 
+            try: 
+                if self.archivo.suffix == '.csv': 
+                    siguiente_chunk= pl.read_csv(
+                        self.archivo, 
+                        skip_rows=skip_rows,
+                        n_rows=chunk_size,
+                        schema_overrides=schema
+                    )
+                else: 
+                    logger.warning('Streaming por Parquet no disponible aun')
+                    break 
+                
+                if siguiente_chunk.height == 0: 
+                    break
+                
+                #Meter el etl de primera transformacion 
+                
+            except Exception as e:
+                logger.warning(f'Fin del archivo o error: {e}')
+                break
     
     def orquestador_pipeline(self) -> None: 
         if self.decision == 'eager': 
@@ -76,5 +118,5 @@ class ETL:
             frame= self._load_lazy_frame() 
             etl_frame= PipelineETL(Frame=frame, model=self.model)
         else: 
-            self._run_streaming_handler() #run la clase de streming
+            self._run_streaming_handler() 
 
