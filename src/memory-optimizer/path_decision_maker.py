@@ -21,9 +21,9 @@ class FileSizeEstimator:
         total_filas= class_overhead_parquet.metadata.num_rows
         
         #resources available and estimated
-        estimated_memory= (overhead_estimated*uncompressed_data_size) / (1024**3)
-        memoria_disponible=psutil.virtual_memory().available/(1024**3)
-        total_memory=psutil.virtual_memory().total/(1024**3)
+        estimated_memory= (overhead_estimated*uncompressed_data_size) 
+        memoria_disponible=psutil.virtual_memory().available
+        total_memory=psutil.virtual_memory().total
         
         #margin of safety
         safety_memory= total_memory*self.os_margin
@@ -33,14 +33,14 @@ class FileSizeEstimator:
         
         return {
             'os_margin': self.os_margin, 
-            'ratio': round(ratio, 3),
-            'overhead_estimado':round(overhead_estimated, 3), 
-            'safety_memory':round(safety_memory, 3),
-            'archivo_descomprimido_gb': round(uncompressed_data_size/(1024**3), 3),
+            'ratio': ratio,
+            'overhead_estimado':overhead_estimated, 
+            'safety_memory':safety_memory,
+            'archivo_descomprimido_gb': uncompressed_data_size, 
             'total_de_filas_gb': total_filas, 
-            'memoria_total_estimada_gb':round(estimated_memory, 3), 
-            'memoria_disponible':round(memoria_disponible, 3), 
-            'total_memory':round(total_memory, 3)
+            'memoria_total_estimada_gb':estimated_memory, 
+            'memoria_disponible':memoria_disponible, 
+            'total_memory':total_memory
         }
     
     def estimate_csv_size(self, csv_overhead_estimator_class, csv_overhead_class) -> Dict[str, Any]: 
@@ -50,9 +50,9 @@ class FileSizeEstimator:
         csv_overhead= csv_overhead_class.overhead_csv()
         
         #resources and estimated resources
-        estimated_memory= (num_rows*csv_overhead*bytes_per_column) / (1024**3)
-        memoria_disponible= psutil.virtual_memory().available/(1024**3)
-        total_memory=psutil.virtual_memory().total/(1024**3)
+        estimated_memory= (num_rows*csv_overhead*bytes_per_column) 
+        memoria_disponible= psutil.virtual_memory().available
+        total_memory=psutil.virtual_memory().total
         
         #margin of safety
         safety_memory= total_memory*self.os_margin
@@ -62,13 +62,13 @@ class FileSizeEstimator:
         
         return {
             'os_margin': self.os_margin, 
-            'ratio': round(ratio, 3),
+            'ratio': ratio, 
             'total_rows':num_rows, 
             'bytes_por_columna':bytes_per_column,
-            'safety_memory':round(safety_memory, 3),
-            'memoria_total_estimada_gb':round(estimated_memory, 3), 
-            'memoria_disponible':round(memoria_disponible, 3), 
-            'total_memory':round(total_memory, 3)
+            'safety_memory':safety_memory, 
+            'memoria_total_estimada_gb':estimated_memory, 
+            'memoria_disponible':memoria_disponible, 
+            'total_memory':total_memory
         }
 
 class PipelineEstimatedSizeFiles: 
@@ -83,7 +83,7 @@ class PipelineEstimatedSizeFiles:
             overhead_csv= CsvOverhead(path=self.archivo, n_rows_sample=self.n_rows_sample)
             resources_csv= self.estimator.estimate_csv_size(csv_overhead_class=overhead_csv, csv_overhead_estimator_class=overhead_csv_class)
             
-            resources_csv['tamaño_archivo_gb']=round(self.archivo.stat().st_size/(1024**4), 3)
+            resources_csv['tamaño_archivo_gb']=self.archivo.stat().st_size
             if resources_csv['ratio'] <= 0.65: 
                 resources_csv['decision']= 'eager'
             elif resources_csv['ratio'] <= 2.0:
@@ -95,7 +95,7 @@ class PipelineEstimatedSizeFiles:
             overhead_parquet= ParquetOverheadEstimator(archivo=self.archivo, n_rows_sample=self.n_rows_sample)
             resources_parquet=self.estimator.estimate_parquet_size(class_overhead_parquet=overhead_parquet)
             
-            resources_parquet['tamaño_archivo']=round(self.archivo.stat().st_size/(1024**3), 3)
+            resources_parquet['tamaño_archivo']=self.archivo.stat().st_size
             if resources_parquet['ratio'] <= 0.65: 
                 resources_parquet['decision']= 'eager'
             elif resources_parquet['ratio'] <= 2.0:
