@@ -27,18 +27,17 @@ class FileSizeEstimator:
         
         #margin of safety
         safety_memory= total_memory*self.os_margin
-        usable_ram= memoria_disponible-safety_memory
         
-        ratio= estimated_memory/usable_ram
+        ratio= estimated_memory/memoria_disponible
         
         return {
             'os_margin': self.os_margin, 
             'ratio': ratio,
             'overhead_estimado':overhead_estimated, 
             'safety_memory':safety_memory,
-            'archivo_descomprimido_gb': uncompressed_data_size, 
+            'archivo_descomprimido': uncompressed_data_size, 
             'total_de_filas_gb': total_filas, 
-            'memoria_total_estimada_gb':estimated_memory, 
+            'memoria_total_estimada':estimated_memory, 
             'memoria_disponible':memoria_disponible, 
             'total_memory':total_memory
         }
@@ -50,23 +49,23 @@ class FileSizeEstimator:
         csv_overhead= csv_overhead_class.overhead_csv()
         
         #resources and estimated resources
-        estimated_memory= (num_rows*csv_overhead*bytes_per_column) 
+        estimated_memory= (num_rows*csv_overhead*bytes_per_column[0]) 
         memoria_disponible= psutil.virtual_memory().available
         total_memory=psutil.virtual_memory().total
         
         #margin of safety
         safety_memory= total_memory*self.os_margin
-        usable_ram= memoria_disponible-safety_memory
         
-        ratio= estimated_memory/usable_ram
+        ratio= estimated_memory/memoria_disponible
         
         return {
             'os_margin': self.os_margin, 
             'ratio': ratio, 
             'total_rows':num_rows, 
+            'sum_bytes_por_columna': bytes_per_column[1],
             'bytes_por_columna':bytes_per_column,
             'safety_memory':safety_memory, 
-            'memoria_total_estimada_gb':estimated_memory, 
+            'memoria_total_estimada':estimated_memory, 
             'memoria_disponible':memoria_disponible, 
             'total_memory':total_memory
         }
@@ -83,7 +82,7 @@ class PipelineEstimatedSizeFiles:
             overhead_csv= CsvOverhead(path=self.archivo, n_rows_sample=self.n_rows_sample)
             resources_csv= self.estimator.estimate_csv_size(csv_overhead_class=overhead_csv, csv_overhead_estimator_class=overhead_csv_class)
             
-            resources_csv['tamaño_archivo_gb']=self.archivo.stat().st_size
+            resources_csv['tamaño_archivo']=self.archivo.stat().st_size
             if resources_csv['ratio'] <= 0.65: 
                 resources_csv['decision']= 'eager'
             elif resources_csv['ratio'] <= 2.0:
