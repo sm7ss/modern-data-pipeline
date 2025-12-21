@@ -120,7 +120,7 @@ class CsvOverheadEstimator:
             else:
                 bytes_estimados.append(16)
         
-        return sum(bytes_estimados)/len(self.frame.columns)
+        return (sum(bytes_estimados)/len(self.frame.columns), sum(bytes_estimados))
     
     def csv_bytes_per_column(self) -> float: 
         bytes_per_column= 0
@@ -155,9 +155,9 @@ class CsvOverheadEstimator:
                 bytes_per_column+=string_bytes
             #Other
             else: 
-                bytes_per_column+=avg_string
+                bytes_per_column+=avg_string[0]
         
-        return bytes_per_column
+        return (bytes_per_column, avg_string[1])
     
     def total_rows_csv(self) -> int: 
         try: 
