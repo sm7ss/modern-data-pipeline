@@ -1,23 +1,21 @@
 import logging 
+import polars as pl 
+import pyarrow as pa
+import pyarrow.parquet as pp
 import psutil
+from typing import Dict, Any
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
 logger= logging.getLogger(__name__)
 
-class CSVOptimalBatchSizeRows: 
-    def __init__(self, path: Path, sample_bytes: float, total_rows: int, safe_margin: float):
+class StreamingCSVHandler: 
+    def __init__(self, path: Path, file_overhead: Dict[str, Any]):
         self.archivo= path
-        self.sample_bytes= sample_bytes
-        self.safe_margin= safe_margin
-        self.total_rows= total_rows
-        self.size_file= path.stat().st_size
-        
-        self.available_ram= psutil.virtual_memory().available
-        self.num_cpu= psutil.cpu_count(logical=False)
+        self.file_overhead= file_overhead
     
-    def estimate_max_chunk_radio(self) -> float: 
-        ratio= self.size_file / self.available_ram
+    def estimate_ratio_batch_size(self) -> float: 
+        ratio= self.file_overhead['ratio']
         
         if ratio > 5: 
             return 0.15 
@@ -28,33 +26,23 @@ class CSVOptimalBatchSizeRows:
         else: 
             return 0.7
     
-    def estimate_min_chunks(self) -> int: 
-        return max(5, self.num_cpu*2)
+    def csv_batch_size_row(self) -> int: 
+        batch_float= self.estimate_batch_size()
+        total_rows= self.file_overhead['total_rows']
+        
+        batch_rows= int(total_rows*batch_float)
+        
+        batch_rows= max(batch_rows)
+        batch_rows= min(batch_rows, total_rows)
+        return batch_rows
     
-    def calculate_optimal_chunk_size(self) -> int: 
-        ram_for_use= self.available_ram * self.safe_margin
-        max_chunk_ratio= self.estimate_max_chunk_radio()
-        min_chunks= self.estimate_min_chunks()
-        
-        ram_limit= int(ram_for_use * max_chunk_ratio)
-        partition_limit= self.size_file // min_chunks
-        
-        chunk_size= min(ram_limit, partition_limit)
-        chunk_size= max(chunk_size, 1024**2)
-        chunk_size= min(chunk_size, self.size_file)
-        
-        return chunk_size
+    def run_streaming(self) -> None: 
+        pass
+
+class StreamingParquetHanlder: 
+    def __init__(self, archivo: Path, file_overhead: Dict[str, Any]):
+        self.archivo= archivo
+        self.file_overhead= file_overhead
     
-    def estimate_bytes_per_row(self) -> float: 
-        avg_bytes_per_row= self.sample_bytes / self.total_rows
-        
-        return avg_bytes_per_row
-    
-    def batch_size_rows(self) -> int: 
-        chunk_size= self.calculate_optimal_chunk_size()
-        bytes_per_row= self.estimate_bytes_per_row()
-        
-        batch_size_rows= max(10000, int(chunk_size/bytes_per_row))
-        batch_size_rows= min(batch_size_rows, 1000000)
-        batch_size_rows=max(batch_size_rows, 10000)
-        return batch_size_rows
+    def read_parquet_streaming(self) -> float: 
+        pass
