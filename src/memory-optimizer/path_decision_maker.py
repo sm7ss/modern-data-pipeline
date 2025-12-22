@@ -49,7 +49,7 @@ class FileSizeEstimator:
         csv_overhead= csv_overhead_class.overhead_csv()
         
         #resources and estimated resources
-        estimated_memory= (num_rows*csv_overhead*bytes_per_column[0]) 
+        estimated_memory= (num_rows*csv_overhead*bytes_per_column) 
         memoria_disponible= psutil.virtual_memory().available
         total_memory=psutil.virtual_memory().total
         
@@ -60,10 +60,9 @@ class FileSizeEstimator:
         
         return {
             'os_margin': self.os_margin, 
+            'csv_overhead': csv_overhead, 
             'ratio': ratio, 
-            'total_rows':num_rows, 
-            'sum_bytes_por_columna': bytes_per_column[1],
-            'bytes_por_columna':bytes_per_column,
+            'total_rows':num_rows,
             'safety_memory':safety_memory, 
             'memoria_total_estimada':estimated_memory, 
             'memoria_disponible':memoria_disponible, 
@@ -94,6 +93,7 @@ class PipelineEstimatedSizeFiles:
             overhead_parquet= ParquetOverheadEstimator(archivo=self.archivo, n_rows_sample=self.n_rows_sample)
             resources_parquet=self.estimator.estimate_parquet_size(class_overhead_parquet=overhead_parquet)
             
+            resources_parquet['parquet_metadata']= overhead_parquet.metadata
             resources_parquet['tamaño_archivo']=self.archivo.stat().st_size
             if resources_parquet['ratio'] <= 0.65: 
                 resources_parquet['decision']= 'eager'
