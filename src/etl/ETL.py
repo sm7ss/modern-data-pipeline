@@ -2,7 +2,7 @@ import polars as pl
 import logging 
 from typing import Union, Dict
 from pydantic import BaseModel
-from prefect import task, flow
+#from prefect import task, flow
 
 from ..strategies.strategies import dtype_estrategia, rename_columns_estrategia
 
@@ -52,12 +52,12 @@ class PipelineETL:
         self.date_format= self.model.schema_config.date_format #bool
         self.data_type= self.model.schema_config.data_type
     
-    @task
+    #@task
     def rename_columns_cleaner(self) -> Union[pl.LazyFrame, pl.DataFrame]: 
         diccionario= self.rc.estrategia(estrategia=self.column_renaming)
         return self.rc.rename_columns_frame(diccionario=diccionario)
     
-    @task
+    #@task
     def dtype_cleaning(self, frame: Union[pl.LazyFrame, pl.DataFrame]) -> Union[pl.LazyFrame, pl.DataFrame]: 
         expresiones_cast= []
         
@@ -66,7 +66,7 @@ class PipelineETL:
         
         return frame.with_columns(expresiones_cast)
     
-    @task
+    #@task
     def format_date_cleaning(self, frame: Union[pl.LazyFrame, pl.DataFrame]) -> Union[pl.LazyFrame, pl.DataFrame]: 
         formato_expr= []
         
@@ -88,10 +88,12 @@ class PipelineETL:
         formato_expr.append(self.dtype_transformer.cast_datetime_date())
         return frame.with_columns(formato_expr)
     
-    @flow(name='Pipeline ETL - rename and dtype transformation')
+    #@flow(name='Pipeline ETL - rename and dtype transformation')
     def etl(self) -> pl.DataFrame:
-        frame= self.rename_columns_cleaner()
-        frame= self.dtype_cleaning(frame=frame)
+        if self.column_renaming: 
+            frame= self.rename_columns_cleaner()
+        if self.data_type:
+            frame= self.dtype_cleaning(frame=frame)
         if self.date_format: 
             frame= self.format_date_cleaning(frame=frame)
         return frame
