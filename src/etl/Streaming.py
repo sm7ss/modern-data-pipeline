@@ -1,10 +1,12 @@
 import logging 
 import polars as pl 
-import pyarrow as pa
-import pyarrow.parquet as pp
-from typing import Dict, Any, Union
+from typing import Dict, Any, Callable
 from pathlib import Path
 from pydantic import BaseModel
+import gc
+import psutil
+import time
+import tracemalloc
 
 from .ETL import PipelineETL
 
@@ -80,23 +82,62 @@ class StreamingCSVHandler:
 class StreamingParquetHanlder: 
     def __init__(self, archivo: Path, file_overhead: Dict[str, Any]):
         self.archivo= archivo
-        self.file_overhead= file_overhead['parquet_metadata']
+        self.file_overhead= file_overhead['parquet_file_pyarrow']
+        self.row_group= file_overhead['parquet_file_pyarrow'].num_row_groups
     
-    def calculate_row_size(self) -> int: 
-        pass
-    
-    def bytes_row_group(self, target_size: Union[int, float]) -> int: 
-        rows=0
-        bytes_used= 0
+    def run_streaming(self, ETL: Callable, model: BaseModel) -> None: 
+        temp= []
         
-        for rg in range(self.row_group.num_row_groups): 
-            rg_meta= self.row_group.row_group(rg)
-            rg_size=sum(
-                rg_meta.column(col).total_uncompressed_size
-                for col in range(self.row_group.num_columns)
-            )
-            return rg_size
+        for i in range(self.row_group):
+            logger.info(f'Procesando {i+1} de {self.row_group} totales de grupos')
+            table= self.file_overhead.read_row_group(i)
+            df= pl.from_arrow(table)
+            
+            transformed= ETL(Frame= df, model=model).etl()
+            
+            if not temp: 
+                transformed.write_parquet('parquet_pandera_validation.parquet')
+                temp.append(transformed)
+            else: 
+                del transformed
+                gc.collect()
 
-class StreamingCleaningData: 
-    #orquestador 
-    pass
+class PipelineStreaming:
+    #Hacer otro engine aquí en caso de que las rows sean demasiadas para procesar en eager o lazy mode
+    # Hacer un Profiiling para esto más profesional 
+    # Hacer mejor logging para tracing 
+    
+    def __init__(self, archivo: Path, file_overhead: Dict[str, Any]):
+        self.archivo= archivo
+        self.file_overhead= file_overhead
+    
+    def run_streaming_engine(self,  ETL: Callable, model: BaseModel) -> Dict[str, Any]: 
+        process = psutil.Process()
+        mem_before = process.memory_info().rss
+        cpu_before = process.cpu_percent(interval=None)
+        tracemalloc.start()
+        start_time = time.perf_counter()
+        
+        if self.archivo.suffix == '.csv': 
+            StreamingCSVHandler(archivo=self.archivo, file_overhead=self.file_overhead).run_streaming(ETL=ETL, model=model)
+        else: 
+            StreamingParquetHanlder(archivo=self.archivo, file_overhead=self.file_overhead).run_streaming(ETL=ETL, model=model)
+        
+        elapsed_time = time.perf_counter() - start_time
+        mem_after = process.memory_info().rss
+        mem_used = mem_after - mem_before
+        cpu_after = process.cpu_percent(interval=None)
+        current, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+        io_counters = process.io_counters()
+        
+        return {
+            'tiempo_segundos': elapsed_time,
+            'memoria_rss_bytes': mem_used,
+            'memoria_rss_mb': mem_used / (1024**2),
+            'cpu_percent': cpu_after - cpu_before,
+            'tracemalloc_current_mb': current / (1024**2),
+            'tracemalloc_peak_mb': peak / (1024**2),
+            'io_read_bytes': io_counters.read_bytes,
+            'io_write_bytes': io_counters.write_bytes
+        }
