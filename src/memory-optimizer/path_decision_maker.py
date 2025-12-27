@@ -93,7 +93,7 @@ class PipelineEstimatedSizeFiles:
             overhead_parquet= ParquetOverheadEstimator(archivo=self.archivo, n_rows_sample=self.n_rows_sample)
             resources_parquet=self.estimator.estimate_parquet_size(class_overhead_parquet=overhead_parquet)
             
-            resources_parquet['parquet_metadata']= overhead_parquet.metadata
+            resources_parquet['parquet_file_pyarrow']= overhead_parquet.parquet_file
             resources_parquet['tamaño_archivo']=self.archivo.stat().st_size
             if resources_parquet['ratio'] <= 0.65: 
                 resources_parquet['decision']= 'eager'
