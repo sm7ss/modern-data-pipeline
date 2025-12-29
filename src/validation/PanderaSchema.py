@@ -15,8 +15,12 @@ class PanderaSchema:
         self.archivo= Path(archivo)
         self.file_overhead= file_overhead
     
-    def _get_schema_lazy_streaming(self, decision: str, file_name: str, filas: int) -> Tuple[pl.DataFrame, pl.Schema]: 
+    def _get_schema_lazy_streaming(self, decision: str, file_name: str) -> Tuple[pl.DataFrame, pl.Schema]: 
         porcentaje= self.percent*100
+        if self.archivo.suffix=='.csv': 
+            filas= self.file_overhead['total_rows']
+        else: 
+            filas= self.file_overhead['total_de_filas']
         total_rows_processing= filas*self.percent
         
         logger.warning(f'La opcion {decision} es una opcion que no es recomendable cargar completa, por lo que se obtendra un {porcentaje}% del total de filas del archivo. {total_rows_processing}/{filas}')
