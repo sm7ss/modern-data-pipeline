@@ -36,7 +36,7 @@ class FileSizeEstimator:
             'overhead_estimado':overhead_estimated, 
             'safety_memory':safety_memory,
             'archivo_descomprimido': uncompressed_data_size, 
-            'total_de_filas_gb': total_filas, 
+            'total_de_filas': total_filas, 
             'memoria_total_estimada':estimated_memory, 
             'memoria_disponible':memoria_disponible, 
             'total_memory':total_memory
