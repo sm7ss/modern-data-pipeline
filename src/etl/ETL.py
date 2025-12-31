@@ -4,7 +4,7 @@ from typing import Union, Dict
 from pydantic import BaseModel
 #from prefect import task, flow
 
-from ..strategies.strategies import dtype_estrategia, rename_columns_estrategia
+from ..strategies.Strategies import dtype_estrategia, rename_columns_estrategia
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(levelname)s')
 logger = logging.getLogger(__name__)
@@ -29,13 +29,18 @@ class RenameColumnsCleaning:
         self.frame= frame
     
     def estrategia(self, estrategia: rename_columns_estrategia) -> Dict: 
+        if isinstance(self.frame, pl.DataFrame): 
+            frame= self.frame.columns
+        else: 
+            frame= self.frame.collect_schema().names()
+        
         match estrategia: 
             case rename_columns_estrategia.CAPITALIZE: 
-                return {col: col.capitalize() for col in self.frame.columns}
+                return {col: col.capitalize() for col in frame}
             case rename_columns_estrategia.LOWER: 
-                return {col: col.lower() for col in self.frame.columns}
+                return {col: col.lower() for col in frame}
             case rename_columns_estrategia.UPPER: 
-                return {col: col.upper() for col in self.frame.columns}
+                return {col: col.upper() for col in frame}
     
     def rename_columns_frame(self, diccionario: Dict[str, str]) -> Union[pl.LazyFrame, pl.DataFrame]: 
         return self.frame.rename(diccionario)
