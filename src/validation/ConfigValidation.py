@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Optional
 import polars as pl 
 
-from ..strategies.strategies import rename_columns_estrategia, dtype_estrategia
+from ..strategies.Strategies import rename_columns_estrategia, dtype_estrategia
 from ..etl.ETL import DataTypeCleaning
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
