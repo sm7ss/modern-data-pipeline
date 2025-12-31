@@ -15,20 +15,16 @@ class PanderaSchema:
         self.archivo= Path(archivo)
         self.file_overhead= file_overhead
     
-    def _get_schema_lazy_streaming(self, decision: str, file_name: str, filas: int) -> Tuple[pl.DataFrame, pl.Schema]: 
+    def _get_schema_lazy_streaming(self, decision: str, file_name: str) -> Tuple[pl.DataFrame, pl.Schema]: 
         porcentaje= self.percent*100
+        filas= self.file_overhead['total_de_filas']
         total_rows_processing= filas*self.percent
         
         logger.warning(f'La opcion {decision} es una opcion que no es recomendable cargar completa, por lo que se obtendra un {porcentaje}% del total de filas del archivo. {total_rows_processing}/{filas}')
         
-        if self.archivo.suffix=='.csv': 
-            frame= pl.read_csv(self.archivo, n_rows=total_rows_processing)
-            schema= frame.schema
-            logger.info(f'Se obtuvo de manera correcta el frame y schema del archivo {file_name}')
-        else: 
-            frame= pl.read_parquet(self.archivo, n_rows=total_rows_processing)
-            schema= frame.schema
-            logger.info(f'Se obtuvo de manera correcta el frame y schema del archivo {file_name}')
+        frame= pl.read_parquet(self.archivo, n_rows=total_rows_processing)
+        schema= frame.schema
+        logger.info(f'Se obtuvo de manera correcta el frame y schema del archivo {file_name}')
         
         return (frame, schema)
     
@@ -37,14 +33,10 @@ class PanderaSchema:
         file_name= self.archivo.name
         
         if decision == 'eager': 
-            if self.archivo.suffix=='.csv':
-                frame= pl.read_csv(self.archivo)
-                schema= frame.schema
-                logger.info(f'Se obtuvo de manera correcta el frame y schema del archivo {file_name} con la decision {decision}')
-            else: 
-                frame= pl.read_parquet(self.archivo)
-                schema= frame.schema
-                logger.info(f'Se obtuvo de manera correcta el frame y schema del archivo {file_name} con la decision {decision}')
+            frame= pl.read_parquet(self.archivo)
+            logger.info(f'Se obtuvo el frame del archivo {self.archivo.name}')
+            schema= frame.schema
+            logger.info(f'Se obtuvo de manera correcta el frame y schema del archivo {file_name} con la decision {decision}')
             return (frame, schema)
         elif decision == 'lazy': 
             return self._get_schema_lazy_streaming(decision=decision, file_name=file_name)
@@ -81,9 +73,11 @@ class PanderaSchema:
             logger.info(f'Se leyó correctamente el archivo {archivo_primera_ingesta.name}')
             
             frame= self._get_frame_schema()[0]
+            logger.info(f'Se obtuvo el frame para el schema del archivo {self.archivo.name}')
             
             try: 
                 schema_primera_ingesta.validate(frame)
                 logger.info(f'Validacion exitosa. Los datos siguen el schema original')
             except pa.errors.SchemaError as e: 
                 logger.error(f'Los datos de ingesta han cambiado. Error detectado \n{e}')
+                raise ValueError
