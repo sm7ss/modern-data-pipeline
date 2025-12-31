@@ -3,8 +3,8 @@ from typing import Dict, Any
 import logging 
 from pathlib import Path
 
-from .csv_overhead import CsvOverhead, CsvOverheadEstimator
-from .parquet_overhead import ParquetOverheadEstimator
+from .CsvOverhead import CsvOverhead, CsvOverheadEstimator
+from .ParquetOverhead import ParquetOverheadEstimator
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class FileSizeEstimator:
             'overhead_estimado':overhead_estimated, 
             'safety_memory':safety_memory,
             'archivo_descomprimido': uncompressed_data_size, 
-            'total_de_filas_gb': total_filas, 
+            'total_de_filas': total_filas, 
             'memoria_total_estimada':estimated_memory, 
             'memoria_disponible':memoria_disponible, 
             'total_memory':total_memory
@@ -62,7 +62,7 @@ class FileSizeEstimator:
             'os_margin': self.os_margin, 
             'csv_overhead': csv_overhead, 
             'ratio': ratio, 
-            'total_rows':num_rows,
+            'total_de_filas':num_rows,
             'safety_memory':safety_memory, 
             'memoria_total_estimada':estimated_memory, 
             'memoria_disponible':memoria_disponible, 
