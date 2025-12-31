@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 from pydantic import BaseModel
 
-from .config_validation import validation_yaml
+from .ConfigValidation import validation_yaml
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
 logger= logging.getLogger(__name__)
