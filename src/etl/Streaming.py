@@ -8,15 +8,24 @@ import psutil
 import time
 import tracemalloc
 
-from .ETL import PipelineETL
+from..validation.PanderaSchema import PanderaSchema
+from ..memory_optimizer.PathDecisionMaker import PipelineEstimatedSizeFiles
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
 logger= logging.getLogger(__name__)
 
 class StreamingCSVHandler: 
-    def __init__(self, path: Path, file_overhead: Dict[str, Any]):
-        self.archivo= path
+    def __init__(self, archivo: Path, file_overhead: Dict[str, Any], os_margin: float=0.3, n_rows_sample: int=1000):
+        self.os_margin= os_margin
+        self.n_rows_sample= n_rows_sample
+        
+        self.archivo= archivo
         self.file_overhead= file_overhead
+    
+    def _file_overhead(self, archivo: str) -> Dict[str, Any]: 
+        archivo= Path(archivo)
+        diccionario= PipelineEstimatedSizeFiles(archivo=archivo, os_margin=self.os_margin, n_rows_sample=self.n_rows_sample).estimated_size_file()
+        return diccionario, archivo
     
     def estimate_ratio_batch_size(self) -> float: 
         ratio= self.file_overhead['ratio']
@@ -31,7 +40,7 @@ class StreamingCSVHandler:
             return 0.7
     
     def csv_batch_size_row(self) -> int: 
-        batch_float= self.estimate_batch_size()
+        batch_float= self.estimate_ratio_batch_size()
         total_rows= self.file_overhead['total_rows']
         
         batch_rows= int(total_rows*batch_float)
@@ -40,7 +49,7 @@ class StreamingCSVHandler:
         batch_rows= min(batch_rows, total_rows)
         return batch_rows
     
-    def run_streaming(self, ETL: PipelineETL, model: BaseModel) -> None: 
+    def run_streaming(self, ETL: Callable, model: BaseModel) -> None: 
         #Hacer otro engine aquí en caso de que las rows sean demasiadas para procesar en eager o lazy mode
         row_size= self.csv_batch_size_row()
         
@@ -55,7 +64,13 @@ class StreamingCSVHandler:
             return frame
         
         schema= frame.schema
-        frame.write_csv('pandera_report.csv')
+        frame.write_parquet('pandera_report.parquet')
+        diccionario, archivo= self._file_overhead(archivo='pandera_report.parquet')
+        try: 
+            PanderaSchema(model=model, archivo=archivo, file_overhead=diccionario)
+        except Exception as e: 
+            logger.error(f'El schema no es compatible. Ocurrio un error en la ejecucion:\n{e}')
+            raise
         
         skip_chunk=row_size
         while True: 
@@ -80,10 +95,18 @@ class StreamingCSVHandler:
                 break
 
 class StreamingParquetHanlder: 
-    def __init__(self, archivo: Path, file_overhead: Dict[str, Any]):
+    def __init__(self, archivo: Path, file_overhead: Dict[str, Any], os_margin: float=0.3, n_rows_sample: int=1000):
+        self.os_margin= os_margin
+        self.n_rows_sample= n_rows_sample
+        
         self.archivo= archivo
         self.file_overhead= file_overhead['parquet_file_pyarrow']
         self.row_group= file_overhead['parquet_file_pyarrow'].num_row_groups
+    
+    def _file_overhead(self, archivo: str) -> Dict[str, Any]: 
+        archivo= Path(archivo)
+        diccionario= PipelineEstimatedSizeFiles(archivo=archivo, os_margin=self.os_margin, n_rows_sample=self.n_rows_sample).estimated_size_file()
+        return diccionario, archivo
     
     def run_streaming(self, ETL: Callable, model: BaseModel) -> None: 
         temp= []
@@ -97,6 +120,12 @@ class StreamingParquetHanlder:
             
             if not temp: 
                 transformed.write_parquet('parquet_pandera_validation.parquet')
+                diccionario, archivo= self._file_overhead(archivo='pandera_report.parquet')
+                try: 
+                    PanderaSchema(model=model, archivo=archivo, file_overhead=diccionario)
+                except Exception as e: 
+                    logger.error(f'El schema no es compatible. Ocurrio un error en la ejecucion:\n{e}')
+                    raise
                 temp.append(transformed)
             else: 
                 del transformed
