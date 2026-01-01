@@ -87,11 +87,6 @@ class CsvOverheadEstimator:
         
         return max(sum(longitudes), 32)
     
-    '''
-        Quitar esto, es muy repetitivo a pesar de ser un calculo anterior para quitar 
-        parametros estaticos del bytes, pero quitar más adelante y remplazar por 
-        más dinámismo.
-    '''
     def estimated_bytes(self) -> int:
         bytes_estimados=[]
         string_bytes=self.string_csv_bytes()
