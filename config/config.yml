@@ -12,9 +12,9 @@ schema_config:
   # Los tipos nativos, se definen en la primera carga
   # Definir tipo de datos en caso de ser necesario 
   # (UNICAMENTE VALIDO A PRIMERA CARGA DE DATOS)
-  data_type: {'user_id': 'utf8'}
+  data_type: 
   # Si no se define por defecto son 2 decimales
   decimal_precision: 3
 
 validation_data:
-    sample_size: 0.1
+    sample_size: 0.01
