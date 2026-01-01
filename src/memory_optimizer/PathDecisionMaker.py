@@ -11,17 +11,18 @@ logger = logging.getLogger(__name__)
 
 class FileSizeEstimator: 
     def __init__(self, os_margin: float=0.3, n_rows_sample: int=1000):
-        self.n_rows_sample= n_rows_sample
         self.os_margin= os_margin
+        self.n_rows_sample= n_rows_sample
     
-    def estimate_parquet_size(self, class_overhead_parquet) -> Dict[str, Any]: 
+    def estimate_parquet_size(self, 
+        class_overhead_parquet) -> Dict[str, Any]: 
         #file overhead and unconmpressed
         uncompressed_data_size= class_overhead_parquet.uncompressed_data_size()
         overhead_estimated= class_overhead_parquet.parquet_algorithm_overhead()
         total_filas= class_overhead_parquet.metadata.num_rows
         
         #resources available and estimated
-        estimated_memory= (overhead_estimated*uncompressed_data_size) 
+        estimated_memory= (overhead_estimated*uncompressed_data_size)
         memoria_disponible=psutil.virtual_memory().available
         total_memory=psutil.virtual_memory().total
         
@@ -32,17 +33,19 @@ class FileSizeEstimator:
         
         return {
             'os_margin': self.os_margin, 
-            'ratio': ratio,
+            'ratio': ratio, 
             'overhead_estimado':overhead_estimated, 
             'safety_memory':safety_memory,
-            'archivo_descomprimido': uncompressed_data_size, 
+            'archivo_descomprimido': uncompressed_data_size,
             'total_de_filas': total_filas, 
             'memoria_total_estimada':estimated_memory, 
             'memoria_disponible':memoria_disponible, 
             'total_memory':total_memory
         }
     
-    def estimate_csv_size(self, csv_overhead_estimator_class, csv_overhead_class) -> Dict[str, Any]: 
+    def estimate_csv_size(self, 
+        csv_overhead_estimator_class, 
+        csv_overhead_class) -> Dict[str, Any]: 
         #bytes and num rows
         num_rows= csv_overhead_estimator_class.total_rows_csv()
         bytes_per_column= csv_overhead_estimator_class.csv_bytes_per_column()
@@ -59,11 +62,11 @@ class FileSizeEstimator:
         ratio= estimated_memory/memoria_disponible
         
         return {
-            'os_margin': self.os_margin, 
-            'csv_overhead': csv_overhead, 
-            'ratio': ratio, 
-            'total_de_filas':num_rows,
-            'safety_memory':safety_memory, 
+            'os_margin': self.os_margin,
+            'csv_overhead': csv_overhead,  
+            'ratio': ratio,
+            'total_de_filas':num_rows, 
+            'safety_memory':safety_memory,
             'memoria_total_estimada':estimated_memory, 
             'memoria_disponible':memoria_disponible, 
             'total_memory':total_memory
@@ -102,3 +105,4 @@ class PipelineEstimatedSizeFiles:
             else: 
                 resources_parquet['decision']= 'streaming'
             return resources_parquet
+
