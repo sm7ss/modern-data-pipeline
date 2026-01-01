@@ -1,8 +1,8 @@
-from pydantic import BaseModel, Field, model_validator, field_validator
-from pathlib import Path
-import logging
-from typing import Dict, Optional
+from pydantic import BaseModel, field_validator, model_validator, Field
 import polars as pl 
+import logging
+from pathlib import Path
+from typing import Dict, Optional
 
 from ..strategies.Strategies import rename_columns_estrategia, dtype_estrategia
 from ..etl.ETL import DataTypeCleaning
@@ -44,7 +44,7 @@ class schema_config_validation(BaseModel):
     @field_validator('date_format')
     def date_format_validation(cls,v): 
         if not v: 
-            return False
+            return pl.Datetime
         else: 
             return v
     
@@ -68,7 +68,7 @@ class schema_config_validation(BaseModel):
             return v
 
 class validation_data_validation(BaseModel): 
-    sample_size: float = Field(..., gt=0, le=1)
+    sample_size: float = Field(gt=0.0, le=1.0)
 
 class validation_yaml(BaseModel): 
     path: path_validation
@@ -83,7 +83,7 @@ class validation_yaml(BaseModel):
         
         #Validar columnas y conversion de tipo de datos para data_type 
         data_type= self.schema_config.data_type
-        if data_type:
+        if data_type: 
             for col in data_type: 
                 if col not in schema: 
                     logger.error(f'La columna {col} no se encuentra en el DataFrame del archivo\n')
@@ -91,7 +91,7 @@ class validation_yaml(BaseModel):
             
             for col, tipo in data_type.items(): 
                 try:
-                    frame.with_columns(DataTypeCleaning().create_cast_expr(col=col, dtype=tipo))
+                    frame.with_columns(DataTypeCleaning().cast_expr(col=col, dtype=tipo))
                 except Exception: 
                     logger.error(f'Ocurrio un error al querer tranformar la columna {col} a el tipo de dato {tipo}\n')
                     raise ValueError(f'currio un error al querer tranformar la columna {col} a el tipo de dato {tipo}')
