@@ -22,12 +22,12 @@ class StreamingCSVHandler:
         self.archivo= archivo
         self.file_overhead= file_overhead
     
-    def _file_overhead(self, archivo: str) -> Dict[str, Any]: 
+    def _file_overhead(self, archivo: str, ) -> Dict[str, Any]: 
         archivo= Path(archivo)
         diccionario= PipelineEstimatedSizeFiles(archivo=archivo, os_margin=self.os_margin, n_rows_sample=self.n_rows_sample).estimated_size_file()
         return diccionario, archivo
     
-    def estimate_ratio_batch_size(self) -> float: 
+    def estimate_batch_size(self) -> float: 
         ratio= self.file_overhead['ratio']
         
         if ratio > 5: 
@@ -40,8 +40,8 @@ class StreamingCSVHandler:
             return 0.7
     
     def csv_batch_size_row(self) -> int: 
-        batch_float= self.estimate_ratio_batch_size()
-        total_rows= self.file_overhead['total_rows']
+        batch_float= self.estimate_batch_size()
+        total_rows= self.file_overhead['total_de_filas']
         
         batch_rows= int(total_rows*batch_float)
         
@@ -58,10 +58,6 @@ class StreamingCSVHandler:
         frame= etl.etl()
         
         logger.info(f'Columnas {frame.height} procesadas exitosamente')
-        
-        #Experimental
-        if frame.height==row_size: 
-            return frame
         
         schema= frame.schema
         frame.write_parquet('pandera_report.parquet')
@@ -119,7 +115,7 @@ class StreamingParquetHanlder:
             transformed= ETL(Frame= df, model=model).etl()
             
             if not temp: 
-                transformed.write_parquet('parquet_pandera_validation.parquet')
+                transformed.write_parquet('pandera_report.parquet')
                 diccionario, archivo= self._file_overhead(archivo='pandera_report.parquet')
                 try: 
                     PanderaSchema(model=model, archivo=archivo, file_overhead=diccionario)
