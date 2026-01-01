@@ -18,8 +18,8 @@ class EngineDecision:
         self.n_rows_sample= n_rows_sample
         
         self.model= ReadSchemaValidation(archivo=archivo).read_file()
-        self.archivo = self.model.path.input_path
-        self.file_overhead= self.file_overhead(archivo=self.archivo)[0]
+        self.archivo= self.model.path.input_path
+        self.file_overhead_model= self.file_overhead(archivo=self.archivo)[0]
     
     def file_overhead(self, archivo: str) -> Dict[str, Any]: 
         archivo= Path(archivo)
@@ -29,9 +29,11 @@ class EngineDecision:
     
     def _load_eager_frame(self) -> pl.DataFrame: 
         if self.archivo.suffix == '.csv': 
-            return pl.read_csv(self.archivo)
+            frame= pl.read_csv(self.archivo)
+            return frame
         else: 
-            return pl.read_parquet(self.archivo)
+            frame= pl.read_parquet(self.archivo)
+            return frame
     
     def _load_lazy_frame(self) -> pl.LazyFrame: 
         if self.archivo.suffix == '.csv': 
@@ -42,12 +44,12 @@ class EngineDecision:
     def _run_streaming_handler(self) -> Dict[str, Any]:
         pipeline_etl= PipelineETL
         
-        streaming= PipelineStreaming(archivo=self.archivo, file_overhead=self.file_overhead)
+        streaming= PipelineStreaming(archivo=self.archivo, file_overhead=self.file_overhead_model)
         diccionario= streaming.run_streaming_engine(ETL=pipeline_etl, model=self.model)
         return diccionario
     
     def orquestador_pipeline(self) -> Optional[Dict[str, Any]]: 
-        decision= self.file_overhead['decision']
+        decision= self.file_overhead_model['decision']
         
         if decision == 'eager': 
             frame= self._load_eager_frame()
@@ -71,8 +73,7 @@ class EngineDecision:
             
             logger.info(f'Se tranformo el frame exitosamente para el archivo {self.archivo.name}')
             diccionario, archivo = self.file_overhead(archivo='pandera_report.parquet')
-            PanderaSchema(model=self.model, archivo=archivo, file_overhead=diccionario).validation_schema()    
-        else: 
+            PanderaSchema(model=self.model, archivo=archivo, file_overhead=diccionario).validation_schema()            
+        else:
             diccionario= self._run_streaming_handler() 
             return diccionario
-
