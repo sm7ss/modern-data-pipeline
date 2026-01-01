@@ -11,7 +11,13 @@ services:
     ports: 
       - "5432:5432"
     volumes: 
-      - postgres_data:/var/lib/postgesql/data
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 510M    
+        reservations:
+          memory: 130M
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
