@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class DataTypeCleaning: 
     @staticmethod
-    def create_cast_expr(col: str, dtype: str) -> pl.Expr: 
+    def cast_expr(col: str, dtype: str) -> pl.Expr: 
         for tipo in dtype_estrategia: 
             if tipo[0] == dtype.lower(): 
                 return pl.col(col).cast(tipo[1])
@@ -28,7 +28,7 @@ class RenameColumnsCleaning:
     def __init__(self, frame: Union[pl.LazyFrame, pl.DataFrame]):
         self.frame= frame
     
-    def estrategia(self, estrategia: rename_columns_estrategia) -> Dict: 
+    def estrategia(self, estrategia: rename_columns_estrategia) -> Dict[str, str]: 
         if isinstance(self.frame, pl.DataFrame): 
             frame= self.frame.columns
         else: 
@@ -60,6 +60,7 @@ class PipelineETL:
     #@task
     def rename_columns_cleaner(self) -> Union[pl.LazyFrame, pl.DataFrame]: 
         diccionario= self.rc.estrategia(estrategia=self.column_renaming)
+        logger.info(f'Se renombraron las columnas a {self.column_renaming} correctamente')
         return self.rc.rename_columns_frame(diccionario=diccionario)
     
     #@task
@@ -68,7 +69,7 @@ class PipelineETL:
         
         for col, tipo in self.data_type.items(): 
             expresiones_cast.append(self.dtype_transformer.cast_expr(col=col, dtype=tipo))
-        
+        logger.info('Se limpiaron los tipos de datos correctamente')
         return frame.with_columns(expresiones_cast)
     
     #@task
@@ -91,6 +92,7 @@ class PipelineETL:
                 continue
         
         formato_expr.append(self.dtype_transformer.cast_datetime_date())
+        logger.info('Se transformaron las columnas tipo string con formato de fecha a datetime')
         return frame.with_columns(formato_expr)
     
     #@flow(name='Pipeline ETL - rename and dtype transformation')
