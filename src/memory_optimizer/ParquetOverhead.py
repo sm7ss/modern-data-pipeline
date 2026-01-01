@@ -14,7 +14,6 @@ class ParquetOverheadEstimator:
     def __init__(self, archivo: Path, n_rows_sample: int=1000):
         self.path = archivo
         self.n_rows_sample= n_rows_sample
-        
         self.parquet_file= pp.ParquetFile(self.path)
         self.metadata = self.parquet_file.metadata
         self.schema= self.metadata.schema.to_arrow_schema()
