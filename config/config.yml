@@ -18,3 +18,21 @@ schema_config:
 
 validation_data:
     sample_size: 0.01
+
+
+os_configuration: 
+  os_margin: 0.3 
+  #No se pueden poner más de mil filas
+  #si se ponen más de mil filas, automaticamente se pondrán solo 1000 para evitar sobrecargar el pipeline 
+  # Si se ponene menos de 100 filas, automaticamente se pondrán 100 filas para evitar tener muy poca data
+  n_rows_sample: 10 
+
+database: 
+  # Si la tabla existe entonces seguira el if_table_exists 
+  # Si no existe la tabla se crea
+  # Si no se pone nombre el default sera el nombre del archivo 
+  table_name: 'Crime_Data'
+  # Puede usarse fail, append o replace
+  # Por defecto tiene fail para evitar errores pero si existe la base de datos no es ideal puesto que los datos no se ingestan al saltar error
+  if_table_exists: 'replace'
+
