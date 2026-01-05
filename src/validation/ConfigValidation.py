@@ -2,7 +2,7 @@ from pydantic import BaseModel, field_validator, model_validator, Field
 import polars as pl 
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Literal
+from typing import Dict, Optional
 
 from ..strategies.Strategies import rename_columns_estrategia, dtype_estrategia
 from ..etl.ETL import DataTypeCleaning
@@ -85,14 +85,6 @@ class os_configuration_validation(BaseModel):
 
 class database_validation(BaseModel): 
     table_name: str
-    if_table_exists: Optional[Literal['append', 'replace', 'fail']]
-    
-    @field_validator('if_table_exists')
-    def if_table_exists_validation(cls, v): 
-        if not v: 
-            v= 'fail'
-            logger.warning('Como no se puso un valor pre-definido para si la tabla existe, se asigno "fail" y en caso de existir la tabla se dará un error. El costo de la operación esta en que se ejecutará el pipeline y fallara al tratar de meterse los datos procesados a la base de datos.')
-        return v
     
     @field_validator('table_name')
     def table_name_validation(cls, v): 
