@@ -13,17 +13,18 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(mess
 logger= logging.getLogger(__name__)
 
 class EngineDecision: 
-    def __init__(self, archivo: str, os_margin: float=0.3, n_rows_sample: int=1000):
-        self.os_margin= os_margin
-        self.n_rows_sample= n_rows_sample
-        
+    def __init__(self, archivo: str):
         self.model= ReadSchemaValidation(archivo=archivo).read_file()
+        
         self.archivo= self.model.path.input_path
         self.file_overhead_model= self.file_overhead(archivo=self.archivo)[0]
     
     def file_overhead(self, archivo: str) -> Dict[str, Any]: 
         archivo= Path(archivo)
-        diccionario= PipelineEstimatedSizeFiles(archivo=archivo, os_margin=self.os_margin, n_rows_sample=self.n_rows_sample).estimated_size_file()
+        os_margin= self.model.os_configuration.os_margin
+        n_rows_sample= self.model.os_configuration.n_rows_sample
+        
+        diccionario= PipelineEstimatedSizeFiles(archivo=archivo, os_margin=os_margin, n_rows_sample=n_rows_sample).estimated_size_file()
         logger.info(f'Se obtuvo el file_overhead para el archivo {self.archivo.name}')
         return diccionario, archivo
     
@@ -50,6 +51,7 @@ class EngineDecision:
     
     def orquestador_pipeline(self) -> Optional[Dict[str, Any]]: 
         decision= self.file_overhead_model['decision']
+        table_name= self.model.database.table_name
         
         if decision == 'eager': 
             frame= self._load_eager_frame()
