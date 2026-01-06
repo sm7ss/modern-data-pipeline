@@ -27,9 +27,13 @@ os_configuration:
   n_rows_sample: 10 
 
 database: 
+  # Si la tabla existe entonces seguira el if_table_exists 
   # Si no existe la tabla se crea
   # Si no se pone nombre el default sera el nombre del archivo 
   table_name: ''
+  # Puede usarse fail, append o replace
+  # Por defecto tiene fail para evitar errores pero si existe la base de datos no es ideal puesto que los datos no se ingestan al saltar error
+  if_table_exists: 'replace'
 
 
 
