@@ -10,6 +10,7 @@ import tracemalloc
 
 from..validation.PanderaSchema import PanderaSchema
 from ..memory_optimizer.PathDecisionMaker import PipelineEstimatedSizeFiles
+from ..database.PostgresqlUri import PostgresDatabase
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
 logger= logging.getLogger(__name__)
@@ -22,7 +23,7 @@ class StreamingCSVHandler:
         self.archivo= archivo
         self.file_overhead= file_overhead
     
-    def _file_overhead(self, archivo: str, ) -> Dict[str, Any]: 
+    def _file_overhead(self, archivo: str) -> Dict[str, Any]: 
         archivo= Path(archivo)
         diccionario= PipelineEstimatedSizeFiles(archivo=archivo, os_margin=self.os_margin, n_rows_sample=self.n_rows_sample).estimated_size_file()
         return diccionario, archivo
@@ -52,12 +53,24 @@ class StreamingCSVHandler:
     def run_streaming(self, ETL: Callable, model: BaseModel) -> None: 
         #Hacer otro engine aquí en caso de que las rows sean demasiadas para procesar en eager o lazy mode
         row_size= self.csv_batch_size_row()
+        table_name= model.database.table_name
+        if_table_exists= model.database.if_table_exists
         
         first_chunk= pl.read_csv(self.archivo, n_rows=row_size)
         etl= ETL(Frame= first_chunk, model=model)
         frame= etl.etl()
+        total_filas= len(frame)
         
         logger.info(f'Columnas {frame.height} procesadas exitosamente')
+        
+        PostgresDatabase.insert_data_to_database(
+            StreamingCSVHandler=self.estimate_batch_size(), 
+            frame=frame.lazy(), 
+            table_name=table_name, 
+            file_overhead=self.file_overhead, 
+            if_table_exists=if_table_exists, 
+            n_rows=total_filas
+        )
         
         schema= frame.schema
         frame.write_parquet('pandera_report.parquet')
@@ -77,15 +90,27 @@ class StreamingCSVHandler:
                     n_rows=row_size, 
                     schema_overrides=schema
                 )
+                total_filas= len(next_chunk)
                 
                 if next_chunk.height==0: 
                     logger.warning('Archivo sin más filas a procesar')
                     return next_chunk
                 
                 frame= etl.etl()
+                PostgresDatabase.insert_data_to_database(
+                    StreamingCSVHandler=self.estimate_batch_size(), 
+                    frame=next_chunk.lazy(), 
+                    table_name=table_name, 
+                    file_overhead=self.file_overhead, 
+                    if_table_exists=if_table_exists, 
+                    n_rows=total_filas
+                )
                 
                 logger.info(f'Columnas {frame.height} procesadas exitosamente.\n{skip_chunk} saltadas')
                 skip_chunk+=row_size
+                
+                del frame
+                gc.collect()
             except Exception as e: 
                 logger.warning(f'Fin del archivo u ocurrio un error: \n{e}')
                 break
@@ -105,7 +130,16 @@ class StreamingParquetHanlder:
         return diccionario, archivo
     
     def run_streaming(self, ETL: Callable, model: BaseModel) -> None: 
-        temp= []
+        table_name= model.database.table_name
+        if_table_exists= model.database.if_table_exists
+        streaming_csv_handler= StreamingCSVHandler(
+            archivo=self.archivo, 
+            file_overhead=self.file_overhead, 
+            os_margin=self.os_margin, 
+            n_rows_sample=self.n_rows_sample
+        )
+        
+        schema_validado= False
         
         for i in range(self.row_group):
             logger.info(f'Procesando {i+1} de {self.row_group} totales de grupos')
@@ -114,16 +148,33 @@ class StreamingParquetHanlder:
             
             transformed= ETL(Frame= df, model=model).etl()
             
-            if not temp: 
+            row_size= len(transformed)
+            
+            PostgresDatabase.insert_data_to_database(
+                StreamingCSVHandler=streaming_csv_handler.estimate_batch_size(), 
+                frame=transformed, 
+                table_name=table_name, 
+                file_overhead=self.file_overhead, 
+                if_table_exists=if_table_exists, 
+                n_rows=row_size
+            )
+            
+            if not schema_validado: 
                 transformed.write_parquet('pandera_report.parquet')
                 diccionario, archivo= self._file_overhead(archivo='pandera_report.parquet')
                 try: 
                     PanderaSchema(model=model, archivo=archivo, file_overhead=diccionario)
+                    logger.info('El schema se conserva igual')
                 except Exception as e: 
                     logger.error(f'El schema no es compatible. Ocurrio un error en la ejecucion:\n{e}')
                     raise
-                temp.append(transformed)
+                schema_validado= True
+                
+                del df
+                del transformed
+                gc.collect()
             else: 
+                del df
                 del transformed
                 gc.collect()
 
