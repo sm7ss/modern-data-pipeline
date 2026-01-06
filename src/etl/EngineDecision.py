@@ -4,10 +4,11 @@ import logging
 from pathlib import Path
 
 from .ETL import PipelineETL
-from .Streaming import PipelineStreaming
+from .Streaming import PipelineStreaming, StreamingCSVHandler
 from ..validation.ReadYamlValidation import ReadSchemaValidation
 from ..memory_optimizer.PathDecisionMaker import PipelineEstimatedSizeFiles
 from ..validation.PanderaSchema import PanderaSchema
+from ..database.PostgresqlUri import PostgresDatabase
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
 logger= logging.getLogger(__name__)
@@ -18,6 +19,7 @@ class EngineDecision:
         
         self.archivo= self.model.path.input_path
         self.file_overhead_model= self.file_overhead(archivo=self.archivo)[0]
+        self.csv_handler= StreamingCSVHandler(archivo=self.archivo, file_overhead=self.file_overhead_model)
     
     def file_overhead(self, archivo: str) -> Dict[str, Any]: 
         archivo= Path(archivo)
@@ -52,6 +54,7 @@ class EngineDecision:
     def orquestador_pipeline(self) -> Optional[Dict[str, Any]]: 
         decision= self.file_overhead_model['decision']
         table_name= self.model.database.table_name
+        if_table_exist= self.model.database.if_table_exists
         
         if decision == 'eager': 
             frame= self._load_eager_frame()
@@ -63,6 +66,17 @@ class EngineDecision:
             logger.info(f'Se tranformo el frame exitosamente para el archivo {self.archivo.name}')
             diccionario, archivo= self.file_overhead(archivo='pandera_report.parquet')
             PanderaSchema(model=self.model, archivo=archivo, file_overhead=diccionario).validation_schema()
+            
+            frame= frame.lazy()
+            
+            PostgresDatabase.insert_data_to_database(
+                StreamingCSVHandler=self.csv_handler.estimate_batch_size(), 
+                frame=frame, 
+                table_name=table_name, 
+                file_overhead=self.file_overhead_model, 
+                if_table_exists=if_table_exist
+            )
+            
         elif decision == 'lazy': 
             frame= self._load_lazy_frame() 
             logger.info(f'Se obtuvo el frame exitosamente con la decision {decision}')
@@ -75,7 +89,16 @@ class EngineDecision:
             
             logger.info(f'Se tranformo el frame exitosamente para el archivo {self.archivo.name}')
             diccionario, archivo = self.file_overhead(archivo='pandera_report.parquet')
-            PanderaSchema(model=self.model, archivo=archivo, file_overhead=diccionario).validation_schema()            
+            PanderaSchema(model=self.model, archivo=archivo, file_overhead=diccionario).validation_schema()   
+            
+            PostgresDatabase.insert_data_to_database(
+                StreamingCSVHandler=self.csv_handler.estimate_batch_size(), 
+                frame=frame, 
+                table_name=table_name, 
+                file_overhead=self.file_overhead_model, 
+                if_table_exists=if_table_exist
+            )
+            
         else:
             diccionario= self._run_streaming_handler() 
             return diccionario
