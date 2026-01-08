@@ -53,22 +53,25 @@ class StreamingCSVHandler:
     def run_streaming(self, ETL: Callable, model: BaseModel) -> None: 
         #Hacer otro engine aquí en caso de que las rows sean demasiadas para procesar en eager o lazy mode
         row_size= self.csv_batch_size_row()
+        
         table_name= model.database.table_name
         if_table_exists= model.database.if_table_exists
+        postgres= PostgresDatabase(
+            table_name=table_name, 
+            file_overhead=self.file_overhead, 
+            if_table_exists=if_table_exists
+        )
         
         first_chunk= pl.read_csv(self.archivo, n_rows=row_size)
         etl= ETL(Frame= first_chunk, model=model)
         frame= etl.etl()
         total_filas= len(frame)
         
-        logger.info(f'Columnas {frame.height} procesadas exitosamente')
+        logger.info(f'\nColumnas {frame.height} procesadas exitosamente')
         
-        PostgresDatabase.insert_data_to_database(
+        postgres.database_insert_data(
             StreamingCSVHandler=self.estimate_batch_size(), 
-            frame=frame.lazy(), 
-            table_name=table_name, 
-            file_overhead=self.file_overhead, 
-            if_table_exists=if_table_exists, 
+            frame=frame.lazy(),
             n_rows=total_filas
         )
         
@@ -97,12 +100,9 @@ class StreamingCSVHandler:
                     return next_chunk
                 
                 frame= etl.etl()
-                PostgresDatabase.insert_data_to_database(
+                postgres.database_insert_data(
                     StreamingCSVHandler=self.estimate_batch_size(), 
-                    frame=next_chunk.lazy(), 
-                    table_name=table_name, 
-                    file_overhead=self.file_overhead, 
-                    if_table_exists=if_table_exists, 
+                    frame=frame.lazy(),
                     n_rows=total_filas
                 )
                 
@@ -132,14 +132,21 @@ class StreamingParquetHanlder:
     def run_streaming(self, ETL: Callable, model: BaseModel) -> None: 
         table_name= model.database.table_name
         if_table_exists= model.database.if_table_exists
+        postgres= PostgresDatabase(
+            table_name=table_name, 
+            file_overhead=self.file_overhead, 
+            if_table_exists=if_table_exists
+        )
+        
         streaming_csv_handler= StreamingCSVHandler(
             archivo=self.archivo, 
             file_overhead=self.file_overhead, 
             os_margin=self.os_margin, 
             n_rows_sample=self.n_rows_sample
-        )
+        ).estimate_batch_size()
         
         schema_validado= False
+        logger.info(f'\nSe empieza el procesamiento de datos por streaming para el archivo {self.archivo.name}')
         
         for i in range(self.row_group):
             logger.info(f'Procesando {i+1} de {self.row_group} totales de grupos')
@@ -150,12 +157,9 @@ class StreamingParquetHanlder:
             
             row_size= len(transformed)
             
-            PostgresDatabase.insert_data_to_database(
-                StreamingCSVHandler=streaming_csv_handler.estimate_batch_size(), 
-                frame=transformed, 
-                table_name=table_name, 
-                file_overhead=self.file_overhead, 
-                if_table_exists=if_table_exists, 
+            postgres.database_insert_data(
+                StreamingCSVHandler=streaming_csv_handler, 
+                frame=transformed.lazy(), 
                 n_rows=row_size
             )
             
