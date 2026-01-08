@@ -7,7 +7,7 @@ from .CsvOverhead import CsvOverhead, CsvOverheadEstimator
 from .ParquetOverhead import ParquetOverheadEstimator
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
-logger = logging.getLogger(__name__)
+logger= logging.getLogger(__name__)
 
 class FileSizeEstimator: 
     def __init__(self, os_margin: float=0.3, n_rows_sample: int=1000):
@@ -30,6 +30,14 @@ class FileSizeEstimator:
         safety_memory= total_memory*self.os_margin
         
         ratio= estimated_memory/memoria_disponible
+        
+        logger.info(f'\nRatio obtenido: {ratio}')
+        logger.info(f'Overhead estimado: {overhead_estimated}')
+        logger.info(f'Bytes de margen de memoria segura: {safety_memory}')
+        logger.info(f'Bytes de archivo descomprimido: {uncompressed_data_size}')
+        logger.info(f'Total de filas: {total_filas}')
+        logger.info(f'Bytes de memoria total estimada para el archivo: {estimated_memory}')
+        logger.info(f'Bytes de memoria disponible: {memoria_disponible}')
         
         return {
             'os_margin': self.os_margin, 
@@ -61,6 +69,13 @@ class FileSizeEstimator:
         
         ratio= estimated_memory/memoria_disponible
         
+        logger.info(f'\nRatio obtenido: {ratio}')
+        logger.info(f'Overhead estimado: {csv_overhead}')
+        logger.info(f'Bytes de margen de memoria segura: {safety_memory}')
+        logger.info(f'Total de filas: {num_rows}')
+        logger.info(f'Bytes de memoria total estimada para el archivo: {estimated_memory}')
+        logger.info(f'Bytes de memoria disponible: {memoria_disponible}')
+        
         return {
             'os_margin': self.os_margin,
             'csv_overhead': csv_overhead,  
@@ -87,10 +102,13 @@ class PipelineEstimatedSizeFiles:
             resources_csv['tamaño_archivo']=self.archivo.stat().st_size
             if resources_csv['ratio'] <= 0.65: 
                 resources_csv['decision']= 'eager'
+                logger.info('Decision: "eager"')
             elif resources_csv['ratio'] <= 2.0:
                 resources_csv['decision']= 'lazy'
+                logger.info('Decision: "lazy"')
             else: 
                 resources_csv['decision']= 'streaming'
+                logger.info('Decision: "streaming"')
             return resources_csv
         else: 
             overhead_parquet= ParquetOverheadEstimator(archivo=self.archivo, n_rows_sample=self.n_rows_sample)
@@ -100,9 +118,12 @@ class PipelineEstimatedSizeFiles:
             resources_parquet['tamaño_archivo']=self.archivo.stat().st_size
             if resources_parquet['ratio'] <= 0.65: 
                 resources_parquet['decision']= 'eager'
+                logger.info('Decision: "eager"')
             elif resources_parquet['ratio'] <= 2.0:
                 resources_parquet['decision']= 'lazy'
+                logger.info('Decision: "lazy"')
             else: 
                 resources_parquet['decision']= 'streaming'
+                logger.info('Decision: "streaming"')
             return resources_parquet
 

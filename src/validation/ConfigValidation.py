@@ -8,8 +8,7 @@ from ..strategies.Strategies import rename_columns_estrategia, dtype_estrategia
 from ..etl.ETL import DataTypeCleaning
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
-logger = logging.getLogger(__name__)
-
+logger= logging.getLogger(__name__)
 
 class path_validation(BaseModel): 
     input_path: str
@@ -101,6 +100,7 @@ class database_validation(BaseModel):
             logger.warning(f'El nuevo_nombre de la tabla es el nombre del archivo; puesto que no se puso ningun nombre en la configuracion')
             return 'new_table'
         
+        v= v.lower()
         len_v= len(v)
         v= v.strip()
         len_v_later= len(v)
@@ -165,6 +165,21 @@ class validation_yaml(BaseModel):
         archivo= self.path.input_path.stem
         
         if self.database.table_name=='new_table': 
-            self.database.table_name= archivo
+            self.database.table_name= archivo.lower()
+            self.database.table_name= self.database.table_name.lower()
+            len_v= len(self.database.table_name)
+            self.database.table_name= self.database.table_name.strip()
+            len_v_later= len(self.database.table_name)
+            if not(len_v == len_v_later): 
+                logger.warning('Se quitaron los espacios de inicio y fin de la palabra')
+            
+            if '-' in self.database.table_name: 
+                self.database.table_name= self.database.table_name.replace('-', '_')
+                logger.warning('Se remplazaron los caracteres - por _')
+            
+            if ' ' in self.database.table_name: 
+                self.database.table_name= self.database.table_name.replace(' ', '')
+                logger.warning('Se quitaron los espacios en blanco entre las palabras')
+            
         return self
 

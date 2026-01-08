@@ -70,7 +70,7 @@ class PanderaSchema:
         else: 
             with open(archivo_primera_ingesta, 'rb') as f: 
                 schema_primera_ingesta= pickle.load(f)
-            logger.info(f'Se leyó correctamente el archivo {archivo_primera_ingesta.name}')
+            logger.info(f'\nSe leyó correctamente el archivo {archivo_primera_ingesta.name}')
             
             frame= self._get_frame_schema()[0]
             logger.info(f'Se obtuvo el frame para el schema del archivo {self.archivo.name}')
@@ -79,5 +79,5 @@ class PanderaSchema:
                 schema_primera_ingesta.validate(frame)
                 logger.info(f'Validacion exitosa. Los datos siguen el schema original')
             except pa.errors.SchemaError as e: 
-                logger.error(f'Los datos de ingesta han cambiado. Error detectado \n{e}')
+                logger.error(f'\nLos datos de ingesta han cambiado. Error detectado \n{e}')
                 raise ValueError

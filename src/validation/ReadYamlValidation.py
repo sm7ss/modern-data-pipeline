@@ -17,7 +17,7 @@ class ReadSchemaValidation:
         try: 
             with open(self.archivo, 'r') as file: 
                 lectura= yaml.safe_load(file)
-                logger.info(f'Se leyó correctamente el archivo {self.archivo.name}')
+                logger.info(f'\nSe leyó correctamente el archivo {self.archivo.name}')
             validacion= validation_yaml(**lectura)
             logger.info(f'Se validó correctamente el schema del yaml para el archivo {self.archivo.name}')
             return validacion
@@ -32,7 +32,7 @@ class ReadSchemaValidation:
         try: 
             with open(self.archivo, 'r') as file: 
                 lectura= tomli.load(file)
-                logger.info(f'Se leyó correctamente el archivo {self.archivo.name}')
+                logger.info(f'\nSe leyó correctamente el archivo {self.archivo.name}')
             validacion= validation_yaml(**lectura)
             logger.info(f'Se validó correctamente el schema del toml para el archivo {self.archivo.name}')
             return validacion
