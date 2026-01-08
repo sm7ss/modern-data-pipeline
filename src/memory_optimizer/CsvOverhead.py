@@ -1,10 +1,6 @@
 import subprocess
 from pathlib import Path
 import polars as pl 
-import logging
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s-%(levelname)s-%(message)s')
-logger= logging.getLogger(__name__)
 
 class CsvOverhead: 
     def __init__(self, path: str, n_rows_sample: int=1000):

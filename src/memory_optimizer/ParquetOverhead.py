@@ -4,11 +4,7 @@ from typing import Dict, Any
 import pyarrow.parquet as pp
 import pyarrow as pa
 
-import logging 
 from pathlib import Path
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s-%(levelname)s-%(message)s')
-logger = logging.getLogger(__name__)
 
 class ParquetOverheadEstimator: 
     def __init__(self, archivo: Path, n_rows_sample: int=1000):
@@ -75,7 +71,7 @@ class ParquetOverheadEstimator:
             else: 
                 promedio_overhead.append(1.7)
         
-        return round(sum(promedio_overhead)/len(promedio_overhead), 3)
+        return sum(promedio_overhead)/len(promedio_overhead)
     
     def parquet_algorithm_overhead(self) -> Dict[str, Any]: 
         factores= []
