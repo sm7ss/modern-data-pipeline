@@ -6,6 +6,8 @@ from typing import Dict, Any, Callable, Optional
 import logging
 import psutil
 
+import pyarrow.csv as pv
+
 import psycopg2
 import io 
 
@@ -34,21 +36,21 @@ class PostgresDatabase:
         process= psutil.Process()
         return process.memory_info().rss
     
-    def optimal_batch_size(self, memory_used: int, batch_size: int=1_000_000) -> int: 
-        safety_memory= self.file_overhead['safety_memory']
-        memory_ratio= memory_used / safety_memory
+    def optimal_batch_size(self, memoria_del_proceso: int, batch_size: int=2_000_000) -> int: 
+        memoria_disponible= psutil.virtual_memory().available
         
-        if memory_ratio >= 0.9: 
-            batch_size= max(250000, int(batch_size*0.3))
-            logger.warning(f'Se redujo el batch size a {batch_size} debido al alto ratio {memory_ratio}')
+        memory_pressure= memoria_del_proceso/memoria_disponible
         
-        elif memory_ratio >= 0.7: 
-            batch_size= max(250000, int(batch_size*0.6))
-            logger.warning(f'Se redujo el batch size a {batch_size} debido al alto ratio {memory_ratio}')
+        if memory_pressure >= 0.9: 
+            batch_size= max(500_000, int(batch_size*0.3))
+            logger.warning(f'Alta presion en memoria {memory_pressure:.2f}. Batch size nuevo {batch_size}')
         
-        elif memory_ratio <= 0.4: 
-            batch_size= min(1000000, int(batch_size*1.3))
-            logger.warning(f'Aumento el batch size a {batch_size} debido al bajo ratio {memory_ratio}')
+        elif memory_pressure <= 0.4: 
+            batch_size= min(batch_size, int(batch_size*1.3))
+            logger.warning(f'Baja presion en memoria {memory_pressure:.2f}. Batch size nuevo {batch_size}')
+        
+        else: 
+            batch_size= batch_size
         
         return batch_size
     
@@ -86,13 +88,13 @@ class PostgresDatabase:
             batch= 0
             
             while offset < filas_totales:
-                memoria_actual= self.current_memory()
-                optimal_batch_size= self.optimal_batch_size(memory_used=memoria_actual)
+                mp= self.current_memory()
+                optimal_batch_size= self.optimal_batch_size(memoria_del_proceso=mp)
                 
-                df= frame.slice(offset, optimal_batch_size).collect(engine='streaming')
+                df= frame.slice(offset, optimal_batch_size).collect(engine='streaming').to_arrow()
                 
-                csv_buff= io.StringIO()
-                df.write_csv(csv_buff)
+                csv_buff= io.BytesIO()
+                pv.write_csv(df, csv_buff)
                 csv_buff.seek(0)
                 
                 with conn.cursor() as cur: 
@@ -102,6 +104,7 @@ class PostgresDatabase:
                 del df
                 gc.collect()
                 
+                batch+=1
                 offset+=optimal_batch_size
             conn.commit()
         except Exception as e: 
