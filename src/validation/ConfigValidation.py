@@ -2,7 +2,8 @@ from pydantic import BaseModel, field_validator, model_validator, Field
 import polars as pl 
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Literal
+from typing import Dict, Optional, Literal, Any
+import pickle
 
 from ..strategies.Strategies import rename_columns_estrategia, dtype_estrategia
 from ..etl.ETL import DataTypeCleaning
@@ -159,6 +160,72 @@ class validation_yaml(BaseModel):
                     logger.error(f'Ocurrio un error al querer tranformar la columna {col} a el tipo de dato {tipo}\n')
                     raise ValueError(f'currio un error al querer tranformar la columna {col} a el tipo de dato {tipo}')
         return self
+    
+    @model_validator(mode='after')
+    def schema_config_validation(self):
+        column_naming= self.schema_config.column_naming
+        date_format= self.schema_config.date_format
+        data_type= self.schema_config.data_type
+        decimal_precision= self.schema_config.decimal_precision
+        
+        def _primera_ingesta() -> Optional[Dict[str, Any]]:
+            path= Path('schema_config.pkl')
+            if path.exists(): 
+                try: 
+                    with open(path, 'rb') as f: 
+                        schema_config= pickle.load(f)
+                        logger.info(f'Se cargo correctamente el archivo {path.name}')
+                except Exception as e: 
+                    logger.error(f'Ocurrio un error al querer cargar el archivo {path.name}')
+                return schema_config
+            
+            if not path.exists():
+                diccionario={
+                    'column_naming':column_naming,
+                    'date_format':date_format,
+                    'data_type':data_type, 
+                    'decimal_precision':decimal_precision
+                }
+                logger.info('Se obtuvo el primer schema para la configuracion')
+                
+                try: 
+                    with open(path, 'wb') as f: 
+                        pickle.dump(diccionario, f)
+                        logger.info('Se creo la primera ingetsa de schema')
+                except Exception as e: 
+                    logger.error(f'Ocurrio un error al querer escribir la primera ingesta de datos:\n{e}')
+                    raise ValueError(f'Ocurrio un error al querer escribir la primera ingesta de datos:\n{e}')
+        
+        diccionario= _primera_ingesta()
+        if not diccionario: 
+            return self
+        
+        column_naming_cls= diccionario.get('column_naming')
+        date_format_cls= diccionario.get('date_format')
+        data_type_cls= diccionario.get('data_type')
+        decimal_precision_cls=diccionario.get('decimal_precision')
+        
+        if column_naming_cls != column_naming: 
+            logger.error(f'El renombramiento no debe de ser diferente a {column_naming_cls}')
+            raise ValueError(f'El renombramiento no debe de ser diferente a {column_naming}')
+        elif date_format_cls != date_format: 
+            logger.error(f'El formato de fecha no debe de ser diferente en caso de existir columnas tipo fecha pasar de {date_format} a {date_format_cls}')
+            raise ValueError(f'El formato de fecha no debe de ser diferente en caso de existir columnas tipo fecha pasar de {date_format} a {date_format_cls}')
+        elif data_type_cls != data_type: 
+            logger.error(f'''El tipo de dato no puede ser diferente. 
+                {'Cambiar de None al Diccionario antiguo' if isinstance(data_type, None)
+                else 'Cambiar de Diccionario a None'
+                }''')
+            raise ValueError(f'''El tipo de dato no puede ser diferente. 
+                {'Cambiar de None al Diccionario antiguo' if isinstance(data_type, None)
+                else 'Cambiar de Diccionario a None'
+                }''')
+        elif decimal_precision_cls != decimal_precision: 
+            logger.error(f'La presicion de decimal no debe de ser diferente de {decimal_precision_cls}')
+            raise ValueError(f'La presicion de decimal no debe de ser diferente de {decimal_precision_cls}')
+        else: 
+            logger.info('Se valido la consistencia de datos')
+            return self
     
     @model_validator(mode='after')
     def table_name(self): 
