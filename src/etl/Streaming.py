@@ -10,7 +10,7 @@ import tracemalloc
 
 from..validation.PanderaSchema import PanderaSchema
 from ..memory_optimizer.PathDecisionMaker import PipelineEstimatedSizeFiles
-from ..database.PostgresqlUri import PostgresDatabase
+#from ..database.PostgresqlUri import PostgresDatabase
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s-%(asctime)s-%(message)s')
 logger= logging.getLogger(__name__)
@@ -56,11 +56,11 @@ class StreamingCSVHandler:
         
         table_name= model.database.table_name
         if_table_exists= model.database.if_table_exists
-        postgres= PostgresDatabase(
+        """postgres= PostgresDatabase(
             table_name=table_name, 
             file_overhead=self.file_overhead, 
             if_table_exists=if_table_exists
-        )
+        )"""
         
         first_chunk= pl.read_csv(self.archivo, n_rows=row_size)
         etl= ETL(Frame= first_chunk, model=model)
@@ -69,11 +69,11 @@ class StreamingCSVHandler:
         
         logger.info(f'\nColumnas {frame.height} procesadas exitosamente')
         
-        postgres.database_insert_data(
+        """postgres.database_insert_data(
             StreamingCSVHandler=self.estimate_batch_size(), 
             frame=frame.lazy(),
             n_rows=total_filas
-        )
+        )"""
         
         schema= frame.schema
         frame.write_parquet('pandera_report.parquet')
@@ -93,18 +93,18 @@ class StreamingCSVHandler:
                     n_rows=row_size, 
                     schema_overrides=schema
                 )
-                total_filas= len(next_chunk)
+                #total_filas= len(next_chunk)
                 
                 if next_chunk.height==0: 
                     logger.warning('Archivo sin más filas a procesar')
                     return next_chunk
                 
                 frame= etl.etl()
-                postgres.database_insert_data(
+                """postgres.database_insert_data(
                     StreamingCSVHandler=self.estimate_batch_size(), 
                     frame=frame.lazy(),
                     n_rows=total_filas
-                )
+                )"""
                 
                 logger.info(f'Columnas {frame.height} procesadas exitosamente.\n{skip_chunk} saltadas')
                 skip_chunk+=row_size
@@ -132,11 +132,11 @@ class StreamingParquetHanlder:
     def run_streaming(self, ETL: Callable, model: BaseModel) -> None: 
         table_name= model.database.table_name
         if_table_exists= model.database.if_table_exists
-        postgres= PostgresDatabase(
+        """postgres= PostgresDatabase(
             table_name=table_name, 
             file_overhead=self.file_overhead, 
             if_table_exists=if_table_exists
-        )
+        )"""
         
         streaming_csv_handler= StreamingCSVHandler(
             archivo=self.archivo, 
@@ -157,11 +157,11 @@ class StreamingParquetHanlder:
             
             row_size= len(transformed)
             
-            postgres.database_insert_data(
+            """postgres.database_insert_data(
                 StreamingCSVHandler=streaming_csv_handler, 
                 frame=transformed.lazy(), 
                 n_rows=row_size
-            )
+            )"""
             
             if not schema_validado: 
                 transformed.write_parquet('pandera_report.parquet')
