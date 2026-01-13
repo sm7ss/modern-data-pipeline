@@ -2,6 +2,7 @@ import duckdb
 import polars as pl
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 import logging 
 
@@ -16,7 +17,10 @@ class DuckDBPostgresConnector:
         if cls._attached: 
             return 
         
-        load_dotenv()
+        ruta= Path(__file__).resolve().parent.parent.parent
+        ruta_env= ruta / ".env"
+        load_dotenv(ruta_env)
+        
         duckdb.connect()
         
         duckdb.sql("INSTALL postgres;")
