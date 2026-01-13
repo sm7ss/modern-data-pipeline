@@ -15,7 +15,7 @@ logger= logging.getLogger(__name__)
 
 class EngineDecision: 
     def __init__(self):
-        archivo= Path('config/config.yml')
+        archivo= Path('/home/arbolitos7/Documents/ArbolitosMiCasita/CrescencioEnLaCiudad/postgresql-duckdb/modern-data-pipeline/config/config.yml')
         self.model= ReadSchemaValidation(archivo=archivo).read_file()
         
         self.archivo= self.model.path.input_path
@@ -75,7 +75,7 @@ class EngineDecision:
             frame= frame.lazy()
             
             postgres.database_insert_data(
-                frame=frame, 
+                frame=frame
             )
             
         elif decision == 'lazy': 
@@ -93,7 +93,7 @@ class EngineDecision:
             PanderaSchema(model=self.model, archivo=archivo, file_overhead=diccionario).validation_schema()   
             
             postgres.database_insert_data(
-                frame=frame, 
+                frame=frame
             )
             
         else:
