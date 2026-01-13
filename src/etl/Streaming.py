@@ -65,7 +65,7 @@ class StreamingCSVHandler:
         first_chunk= pl.read_csv(self.archivo, n_rows=row_size)
         etl= ETL(Frame= first_chunk, model=model)
         frame= etl.etl()
-        total_filas= len(frame)
+        #total_filas= len(frame)
         
         logger.info(f'\nColumnas {frame.height} procesadas exitosamente')
         
