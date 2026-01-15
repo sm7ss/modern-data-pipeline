@@ -1,5 +1,5 @@
 path: 
-  input_path: '/home/arbolitos7/Documents/ArbolitosMiCasita/CrescencioEnLaCiudad/archivos/Zvuk_Dataset/zvuk-interactions.parquet'
+  input_path: 'data/large_dataset.parquet'
 
 schema_config: 
   #Primera carga, luego inmutables
