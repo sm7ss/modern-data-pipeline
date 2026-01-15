@@ -117,9 +117,7 @@ path:
 schema_config:
   column_naming: 'lower'
   date_format: true
-  data_type:
-    age: 'int64'
-    salary: 'float64'
+  data_type: {'age': 'int64', 'salary': 'float64'}
 
 validation_data:
   sample_size: 0.01
