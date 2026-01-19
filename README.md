@@ -6,70 +6,69 @@
 [![Docker](https://img.shields.io/badge/Docker-Containerization-blue.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-Un sistema de data pipeline end-to-end que procesa inteligentemente desde 1 millón hasta 244 millones de filas con recursos limitados, tomando decisiones automáticas basadas en memoria disponible, validando schemas en tiempo real, e ingiriendo datos a bases de datos de producción. 🚀
+An end-to-end data pipeline system that intelligently processes from 1 million to 244 million rows with limited resources, making automatic decisions based on available memory, validating schemas in real-time, and ingesting data into production databases. 🚀
 
-## 🎯 El Desafío: Big Data en Hardware Limitado
+## 🎯 The Challenge: Big Data on Limited Hardware
 
-Problema: ¿Cómo procesas 244 millones de filas con solo 15GB de RAM total y solo de 8 a 9 GB de RAM disponible, mantienes consistencia de schemas, soportas múltiples formatos de archivo, y todo ejecutándose 100% local?
+**Problem:** How do you process 244 million rows with only 15GB total RAM and only 8-9 GB of available RAM, maintain schema consistency, support multiple file formats, all running 100% locally?
 
-Solución: Este pipeline inteligente que:
+**Solution:** This intelligent pipeline that:
+- Auto-decides loading strategies (eager/lazy/streaming)
+- Optimizes memory in real-time based on hardware
+- Validates schemas to prevent data drift
+- Efficiently processes 1M to 244M rows
+- Reduces time by 30% and memory by 45%
 
-- Auto-decide estrategias de carga (eager/lazy/streaming)
-- Optimiza memoria en tiempo real basado en hardware
-- Valida schemas para prevenir data drift
-- Procesa eficientemente 1M a 244M filas
-- Reduce tiempo en 30% y memoria en 45%
+## 🏆 Key Achievements (Real Metrics)
 
-## 🏆 Logros Clave (Métricas Reales)
+### **244M Row Dataset (15GB RAM available):**
 
-### **Dataset de 244M filas (15GB RAM disponible):**
-
-| Estrategia	       | Tiempo Total |	Memoria Peak | CPU Usage |	Mejora                           |
+| Strategy	       | Total Time |	Peak Memory | CPU Usage |	Improvement                           |
 |----------------------|--------------|--------------|-----------|-----------------------------------|
-| **Sin optimizar**	   | 15:00 min	  | 951 MB       | 40%	     | Baseline                          |
-| **Batch 2M filas**   | 12:46 min	  | 160 MB	     | 12%	     | 15% más rápido                    |
-| **Paralelizado**	   | 12:20 min	  | 951 MB	     | 15%	     | 17% más rápido                    |
-| **Optimizado Final** | 11:28 min	  | 521 MB	     | 14%	     | 30% más rápido, 45% menos memoria |
+| **Unoptimized**	   | 15:00 min	  | 951 MB       | 40%	     | Baseline                          |
+| **2M Row Batch**   | 12:46 min	  | 160 MB	     | 12%	     | 15% faster                  |
+| **Parallelized**	   | 12:20 min	  | 951 MB	     | 15%	     | 17% faster                    |
+| **Final Optimized** | 11:28 min	  | 521 MB	     | 14%	     | 30% faster, 45% less memory |
 
-### **Resultados por Tamaño de Dataset:**
+### **Results by Dataset Size:**
 
-- 1M filas (CSV): 3.68s → 2.09s (43% más rápido)
-- 1M filas (Parquet): 19.22s → 12.80s (33% más rápido)
-- 244M filas (Parquet): 15:00min → 11:28min (30% más rápido)
+- 1M rows (CSV): 3.68s → 2.09s (43% faster)
+- 1M rows (Parquet): 19.22s → 12.80s (33% faster)
+- 244M rows (Parquet): 15:00min → 11:28min (30% faster)
 
-## ✨ Características Principales
+## ✨ Key Features
 
-### 🧠 **Inteligencia de Carga Automática**
+### 🧠 **Automatic Load Intelligence**
 
-- Memory-aware decision engine: Analiza RAM disponible vs datos necesarios
-- Tres estrategias automáticas: eager (RAM), lazy (LazyFrame), streaming (chunks)
-- Overhead calculation: Preciso para CSV y Parquet basado en tipos de datos reales
-- Hardware adaptation: Se ajusta dinámicamente a tus recursos
+- Memory-aware decision engine: Analyzes available RAM vs needed data
+- Three automatic strategies: eager (RAM), lazy (LazyFrame), streaming (chunks)
+- Overhead calculation: Accurate for CSV and Parquet based on real data types
+- Hardware adaptation: Dynamically adjusts to your resources
 
-### 🛡️ **Validación y Consistencia**
+### 🛡️ **Validation and Consistency**
 
-- Schema validation con Pandera: Garantiza consistencia entre ejecuciones
-- Pydantic para configs: Valida YAML/TOML con tipos estrictos
-- Data type enforcement: Casting seguro con manejo de errores
-- Persistent schema tracking: Detecta drifts automáticamente
+- Schema validation with Pandera: Ensures consistency between executions
+- Pydantic for configs: Validates YAML/TOML with strict types
+- Data type enforcement: Safe casting with error handling
+- Persistent schema tracking: Automatically detects drifts
 
-### ⚡ **Performance Optimizado**
+### ⚡ **Optimized Performance**
 
-- PyArrow zero-copy: Reduce overhead de memoria
-- Batch size inteligente: Ajusta dinámicamente basado en presión de memoria
-- Streaming engine: Para datasets que no caben en RAM
-- Efficient Postgres ingestion: COPY command con batches optimizados
+- PyArrow zero-copy: Reduces memory overhead
+- Intelligent batch size: Dynamically adjusts based on memory pressure
+- Streaming engine: For datasets that don't fit in RAM
+- Efficient Postgres ingestion: COPY command with optimized batches
 
-### 🔄 **Pipeline End-to-End**
+### 🔄 **End-to-End Pipeline**
 
-- Configuración dual: YAML o TOML
-- ETL personalizable: Renaming, type casting, date parsing
-- Database integration: PostgreSQL + DuckDB para queries rápidas
-- Docker-ready: Infraestructura reproducible
+- Dual configuration: YAML or TOML
+- Customizable ETL: Renaming, type casting, date parsing
+- Database integration: PostgreSQL + DuckDB for fast queries
+- Docker-ready: Reproducible infrastructure
 
-## 🏗️ Arquitectura del Sistema
+## 🏗️ System Architecture
 
-### **Flujo de Datos:**
+### **Data Flow:**
 
 1. 📄 Config YAML/TOML → Pydantic validation
 2. 🔍 File analysis → Memory estimation
@@ -79,21 +78,21 @@ Solución: Este pipeline inteligente que:
 6. 🗄️ Database ingestion → PostgreSQL
 7. 📊 Query layer → DuckDB for analysis
 
-## 🚀 Instalación Rápida
+## 🚀 Quick Installation
 
 ```bash 
-# Clonar el repositorio
+# Clone the repository
 git clone https://github.com/sm7ss/production-data-pipeline.git
 cd production-data-pipeline
 
-# Instalar dependencias
+# Install dependencies
 pip install -r requirements.txt
 
-# Iniciar PostgreSQL con Docker
+# Start PostgreSQL with Docker
 docker-compose up -d
 ```
 
-### **Dependencias Principales:**
+### **Main Dependencies:**
 
 ```text 
 polars>=0.19.0
@@ -106,9 +105,9 @@ psycopg2-binary>=2.9.0
 docker>=6.0.0
 ```
 
-## 💻 Uso en 3 Pasos
+## 💻 Usage in 3 Steps
 
-### **1. Configuración (config.yml):**
+### **1. Configuration (config.yml):**
 
 ```yaml 
 path:
@@ -133,26 +132,26 @@ database:
   if_table_exists: 'replace'
 ```
 
-### **2. Ejecución:**
+### **2. Execution:**
 
 ```python 
 from src.etl.EngineDecision import EngineDecision
 
-# Pipeline automático
+# Automatic pipeline
 pipeline = EngineDecision()
 results = pipeline.orquestador_pipeline()
 
-print(f"✅ Procesado: {results['total_rows']} filas")
-print(f"⏱️  Tiempo: {results['execution_time']:.2f}s")
-print(f"💾 Memoria usada: {results['memory_used_mb']:.2f} MB")
+print(f"✅ Processed: {results['total_rows']} rows")
+print(f"⏱️  Time: {results['execution_time']:.2f}s")
+print(f"💾 Memory used: {results['memory_used_mb']:.2f} MB")
 ```
 
-### **3. Análisis con DuckDB:**
+### **3. Analysis with DuckDB:**
 
 ```python 
 from src.database.DuckDBQueries import DuckDBPostgresConnector
 
-# Query rápida sobre PostgreSQL
+# Fast query over PostgreSQL
 df = DuckDBPostgresConnector.query("""
   SELECT department, AVG(salary) as avg_salary
   FROM pg_main.employees
@@ -161,27 +160,27 @@ df = DuckDBPostgresConnector.query("""
 """)
 ```
 
-## 🔧 Configuración Avanzada
+## 🔧 Advanced Configuration
 
-### **Optimización de Memoria:**
+### **Memory Optimization:**
 
 ```yaml 
 os_configuration:
-  os_margin: 0.3        # 30% margen de seguridad
-  n_rows_sample: 5000   # Muestreo para estimación
+  os_margin: 0.3        # 30% safety margin
+  n_rows_sample: 5000   # Sampling for estimation
 ```
 
-### **ETL Personalizado:**
+### **Custom ETL:**
 
 ```yaml 
 schema_config:
   column_naming: 'upper'  # lower, upper, capitalize
-  date_format: true       # Auto-detecta strings de fecha
-  data_type: {'user_id': 'int64', 'created_at': 'datetime', 'price': 'float64'} # Casting manual
-  decimal_precision: 3    # Precisión decimal
+  date_format: true       # Auto-detects date strings
+  data_type: {'user_id': 'int64', 'created_at': 'datetime', 'price': 'float64'} # Manual casting
+  decimal_precision: 3    # Decimal precision
 ```
 
-### **Estrategias de Database:**
+### **Database Strategies:**
 
 ```yaml 
 database:
@@ -189,50 +188,50 @@ database:
   if_table_exists: 'append'  # fail, append, replace
 ```
 
-## 📊 Casos de Uso Empresariales
+## 📊 Business Use Cases
 
-### **1. ETL Diario de Grandes Volúmenes**
+### **1. Daily High-Volume ETL**
 
 ```python 
-# Procesamiento nocturno de 100M+ filas
+# Nightly processing of 100M+ rows
 pipeline = EngineDecision()
-pipeline.orquestador_pipeline()  # Auto-optimiza para recursos nocturnos
+pipeline.orquestador_pipeline()  # Auto-optimizes for nightly resources
 ```
 
 ### **2. Data Quality Monitoring**
 
 ```python 
-# Validación automática de schema changes
+# Automatic validation of schema changes
 from src.validation.PanderaSchema import PanderaSchema
 
 validator = PanderaSchema(config="config.yml", data="new_data.parquet")
 try:
-    validator.validation_schema()  # ✅ Schema consistente
+    validator.validation_schema()  # ✅ Consistent schema
 except:
-    alert_team("Schema changed!")  # 🚨 Data drift detectado
+    alert_team("Schema changed!")  # 🚨 Data drift detected
 ```
 
 ### **3. Resource-Constrained Environments**
 
-- Ejecución en servidores con RAM limitada
-- El sistema auto-ajusta a 4GB, 8GB, 16GB de RAM
-- Cambia automáticamente entre eager/lazy/streaming
+- Execution on servers with limited RAM
+- System auto-adjusts to 4GB, 8GB, 16GB RAM
+- Automatically switches between eager/lazy/streaming
 
 ### **4. Development vs Production**
 
 ```yaml 
-# Development (muestra pequeña)
+# Development (small sample)
 validation_data:
-  sample_size: 0.01  # 1% para desarrollo rápido
+  sample_size: 0.01  # 1% for fast development
 
-# Production (validación completa)  
+# Production (complete validation)  
 validation_data:
-  sample_size: 0.10  # 10% para producción segura
+  sample_size: 0.10  # 10% for safe production
 ```
 
-## 🎯 Decision Engine: Cómo Funciona
+## 🎯 Decision Engine: How It Works
 
-### **Algoritmo de Decisión:**
+### **Decision Algorithm:**
 
 ```python 
 def decide_strategy(file_size, available_ram, os_margin=0.3):
@@ -241,94 +240,94 @@ def decide_strategy(file_size, available_ram, os_margin=0.3):
     
     ratio = estimated_needed / safety_ram
     
-    if ratio <= 0.65:      # 65% de RAM disponible
-        return "eager"     # ✅ Carga completa
-    elif ratio <= 2.0:     # Hasta 200% 
+    if ratio <= 0.65:      # 65% of available RAM
+        return "eager"     # ✅ Full load
+    elif ratio <= 2.0:     # Up to 200% 
         return "lazy"      # ⚡ LazyFrame
-    else:                  # Más del 200%
-        return "streaming" # 🚀 Procesamiento por chunks
+    else:                  # More than 200%
+        return "streaming" # 🚀 Chunk processing
 ```
 
-### **Estimación Precisa:**
+### **Accurate Estimation:**
 
-- CSV: Basado en tipos de datos y longitud de strings
-- Parquet: Usa metadata real de PyArrow (tamaño descomprimido)
-- Considera: Integers, floats, strings, dates, nested types
+- CSV: Based on data types and string lengths
+- Parquet: Uses real PyArrow metadata (uncompressed size)
+- Considers: Integers, floats, strings, dates, nested types
 
-## 🔬 Métricas de Performance Detalladas
+## 🔬 Detailed Performance Metrics
 
-### **Hardware de Prueba:**
+### **Test Hardware:**
 
-- RAM: 15.5GB total, 8-9GB disponible típicamente
-- CPU: 12 cores físicos
-- Storage: SSD 250GB + HDD 1TB
-- 100% local: Sin cloud
+- RAM: 15.5GB total, 8-9GB typically available
+- CPU: 12 physical cores
+- Storage: 250GB SSD + 1TB HDD
+- 100% local: No cloud
 
-### **Dataset 1: CSV (1M filas, 5 columnas)**
+### **Dataset 1: CSV (1M rows, 5 columns)**
 
 **Baseline**:    3.68s, 347MB, 97.5% CPU
 **Optimized**:   2.09s, 346MB, 80.2% CPU
-**Improvement**: 43% más rápido, misma memoria
+**Improvement**: 43% faster, same memory
 
-### **Dataset 2: Parquet (1M filas, 26 columnas)**
+### **Dataset 2: Parquet (1M rows, 26 columns)**
 
 **Baseline**:    19.22s, 1302MB, 55.4% CPU  
 **Optimized**:   12.80s, 1306MB, 47.7% CPU
-**Improvement**: 33% más rápido, CPU más eficiente
+**Improvement**: 33% faster, more efficient CPU
 
-### **Dataset 3: Parquet (244M filas, 5 columnas)**
+### **Dataset 3: Parquet (244M rows, 5 columns)**
 
 **Baseline**:    15:00min, 951MB, 40% CPU
 **Optimized**:   11:28min, 521MB, 14% CPU
-**Improvement**: 30% más rápido, 45% menos memoria
+**Improvement**: 30% faster, 45% less memory
 
-## 🛠️ Tech Stack Detallado
+## 🛠️ Detailed Tech Stack
 
-### **Procesamiento Principal:**
+### **Main Processing:**
 
-- Polars: DataFrames ultrarrápidos en Rust
-- PyArrow: Acceso a metadatos sin copia, serialización eficiente
-- Pydantic: Validación de configuración con seguridad de tipos
+- Polars: Ultra-fast DataFrames in Rust
+- PyArrow: Zero-copy metadata access, efficient serialization
+- Pydantic: Configuration validation with type safety
 
-### **Validación y Calidad:**
+### **Validation and Quality:**
 
-- Pandera: Validación de esquemas, cumplimiento de contratos de datos
-- Validadores personalizados: Existencia de archivos, compatibilidad de tipos, reglas de nomenclatura
+- Pandera: Schema validation, data contract compliance
+- Custom validators: File existence, type compatibility, naming rules
 
-### **Infraestructura y Monitoreo:**
+### **Infrastructure and Monitoring:**
 
-- Docker: Entornos reproducibles, contenedor de PostgreSQL
-- psutil: Monitoreo de memoria, detección de hardware
-- tracemalloc: Seguimiento detallado de memoria
-- Métricas personalizadas: Tiempo de ejecución, uso de memoria, conteo de filas
+- Docker: Reproducible environments, PostgreSQL container
+- psutil: Memory monitoring, hardware detection
+- tracemalloc: Detailed memory tracking
+- Custom metrics: Execution time, memory usage, row count
 
-### **Capa de Base de Datos:**
+### **Database Layer:**
 
-- PostgreSQL: Almacenamiento de datos de nivel productivo
-- DuckDB: Consultas analíticas, agregaciones rápidas
-- psycopg2: Inserciones por lotes eficientes con comando COPY
+- PostgreSQL: Production-level data storage
+- DuckDB: Analytical queries, fast aggregations
+- psycopg2: Efficient batch insertions with COPY command
 
-### **Configuración y Flexibilidad:**
+### **Configuration and Flexibility:**
 
-- YAML/TOML: Soporte para formato de configuración dual
-- Estrategias Enum: Opciones de configuración con seguridad de tipos
-- Variables de entorno: Gestión segura de credenciales
+- YAML/TOML: Dual configuration format support
+- Enum strategies: Type-safe configuration options
+- Environment variables: Secure credential management
 
-## 🤝 Contribuciones y Feedback
+## 🤝 Contributions and Feedback
 
-Si tienes sugerencias para:
+If you have suggestions for:
 
-- Mejoras en la arquitectura
-- Optimizaciones de performance
-- Mejores prácticas de ingeniería de datos
-- Ideas para nuevas features
+- Architecture improvements
+- Performance optimizations
+- Data engineering best practices
+- Ideas for new features
 
-¡Tu feedback es super bienvenido! 💫
+Your feedback is very welcome! 💫
 
-### **Guía de contribución:**
+### **Contribution Guide:**
 
-1. Fork el proyecto
-2. Crea feature branch (git checkout -b feature/nueva-db)
-3. Commit cambios (git commit -m 'feat: add ClickHouse support')
-4. Push a la rama (git push origin feature/nueva-db)
-5. Abre Pull Request
+1. Fork the project
+2. Create feature branch (git checkout -b feature/new-db)
+3. Commit changes (git commit -m 'feat: add ClickHouse support')
+4. Push to branch (git push origin feature/new-db)
+5. Open Pull Request
