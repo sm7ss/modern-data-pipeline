@@ -7,7 +7,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 An end-to-end data pipeline system that intelligently processes from 1 million to 244 million rows with limited resources, making automatic decisions based on available memory, validating schemas in real-time, and ingesting data into production databases. 🚀
-
+ 
 ## 🎯 The Challenge: Big Data on Limited Hardware
 
 **Problem:** How do you process 244 million rows with only 15GB total RAM and only 8-9 GB of available RAM, maintain schema consistency, support multiple file formats, all running 100% locally?
