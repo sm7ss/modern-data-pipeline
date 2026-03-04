@@ -1,5 +1,5 @@
 path: 
-  input_path: 'data/large_dataset.parquet'
+  input_path: 'crime.parquet'
 
 schema_config: 
   #Primera carga, luego inmutables
