@@ -16,7 +16,7 @@ class path_validation(BaseModel):
     
     @field_validator('input_path')
     def validate_path(cls, v): 
-        path = Path(v)
+        path = Path(__file__).resolve().parent.parent.parent / 'data' / v
         nombre = path.name
         terminacion = path.suffix
         
