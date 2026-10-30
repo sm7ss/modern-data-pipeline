@@ -82,7 +82,7 @@ Un sistema de datos end-to-end que procesa de forma inteligente entre 1 millón 
 
 ```bash 
 # Clonar el repositorio
-git clone https://github.com/sm7ss/production-data-pipeline.git
+git clone https://github.com/sm7ss/modern-data-pipeline
 cd production-data-pipeline
 
 # Instalar dependencias
